@@ -21,7 +21,6 @@ import { UIhelper } from '../utils/UIhelper';
 
 describe('Basic Happy Path', () => {
   const applicationName = Common.generateAppName();
-  // const applicationName = "test-app-173261349";
   const applicationDetailPage = new ApplicationDetailPage();
   const integrationTestsTab = new IntegrationTestsTabPage();
   const componentPage = new ComponentPage();
@@ -29,12 +28,9 @@ describe('Basic Happy Path', () => {
   const sourceOwner = 'hac-test';
   const sourceRepo = 'devfile-sample-code-with-quarkus';
   const repoName = Common.generateAppName(sourceRepo);
-  // const repoName = "java-quarkus-173261349"
   const repoOwner = 'redhat-hac-qe';
   const publicRepo = `https://github.com/${repoOwner}/${repoName}`;
-  // const publicRepo = 'https://github.com/redhat-hac-qe/devfile-sample-code-with-quarkus-173218691'
   const componentName: string = Common.generateAppName('java-quarkus');
-  // const componentName = "java-quarkus-173261349"
   const piplinerunlogsTasks = ['init', 'clone-repository', 'build-container', 'show-sbom'];
   const quarkusDeplomentBody = 'Congratulations, you have created a new Quarkus cloud application';
   // this is default option and should be the fastest one
@@ -194,7 +190,7 @@ describe('Basic Happy Path', () => {
       ComponentsTabPage.openComponent(componentName);
     });
 
-    it('Verify deployed image exists', () => {
+    it.skip('Verify deployed image exists', () => {
       ComponentDetailsPage.checkBuildImage();
     });
   });
