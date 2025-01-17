@@ -24,7 +24,12 @@ TEST_IMAGE="quay.io/konflux_ui_qe/konflux-ui-tests:latest"
 git fetch origin ${TARGET_BRANCH}
 
 # Rebuild test image if Containerfile from e2e-tests was changed 
-if ! git diff --exit-code --quiet origin/${TARGET_BRANCH} HEAD -- e2e-tests/Containerfile; then
+git diff --exit-code --quiet origin/${TARGET_BRANCH} HEAD -- e2e-tests/Containerfile || is_changed_cf=$?
+git diff --exit-code --quiet origin/${TARGET_BRANCH} HEAD -- e2e-tests/entrypoint.sh || is_changed_ep=$?
+echo "$is_changed_cf: " $is_changed_cf
+echo "$is_changed_cf: " $is_changed_ep
+
+if [[ ($is_changed_cf -eq 1) || ($is_changed_ep -eq 1) ]]; then
     echo "Containerfile changes detected, rebuilding test image"
     TEST_IMAGE="konflux-ui-tests:pr-$PR_NUMBER"
 
@@ -43,14 +48,22 @@ COMMON_SETUP="-v $PWD/artifacts:/tmp/artifacts:Z,U \
     -e CYPRESS_USERNAME=${CYPRESS_USERNAME} \
     -e CYPRESS_PASSWORD=${CYPRESS_PASSWORD} \
     -e CYPRESS_GH_TOKEN=${CYPRESS_GH_TOKEN}"
-set +e
+    
 TEST_RUN=0
 
+set -e
 podman run --network host ${COMMON_SETUP} ${TEST_IMAGE} || TEST_RUN=1
+echo "Exit status of podman command: " $?
+echo "TEST RUN: " $TEST_RUN
+echo $PWD
 
 # kill the background process running the UI
 kill $YARN_PID
 cp yarn_start_logfile $PWD/artifacts
 
 echo "Exiting pr_check.sh with code $TEST_RUN"
+echo $PWD
+
+cd ..
 exit $TEST_RUN
+

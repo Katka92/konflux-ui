@@ -191,7 +191,7 @@ describe('Basic Happy Path', () => {
       ComponentsTabPage.openComponent(componentName);
     });
 
-    it.skip('Verify deployed image exists', () => {
+    it('Verify deployed image exists', () => {
       ComponentDetailsPage.checkBuildImage();
     });
   });
