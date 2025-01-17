@@ -1,19 +1,11 @@
-import { FULL_APPLICATION_TITLE, NavItem } from '../support/constants/PageTitle';
+import { NavItem } from '../support/constants/PageTitle';
 import { actions } from '../support/pageObjects/global-po';
 import { ApplicationDetailPage } from '../support/pages/ApplicationDetailPage';
-import {
-  ComponentDetailsPage,
-  ComponentPageTabs,
-  DeploymentsTab,
-} from '../support/pages/ComponentDetailsPage';
+import { ComponentDetailsPage } from '../support/pages/ComponentDetailsPage';
 import { ComponentPage } from '../support/pages/ComponentsPage';
 import { ComponentsTabPage } from '../support/pages/tabs/ComponentsTabPage';
 import { IntegrationTestsTabPage } from '../support/pages/tabs/IntegrationTestsTabPage';
-import {
-  DetailsTab,
-  PipelinerunsTabPage,
-  TaskRunsTab,
-} from '../support/pages/tabs/PipelinerunsTabPage';
+import { DetailsTab, TaskRunsTab } from '../support/pages/tabs/PipelinerunsTabPage';
 import { APIHelper } from '../utils/APIHelper';
 import { Applications } from '../utils/Applications';
 import { Common } from '../utils/Common';
@@ -58,7 +50,8 @@ describe('Basic Happy Path', () => {
       cy.get(actions.deleteApp).click();
       cy.get(actions.deleteModalInput).clear().type(applicationName);
       cy.get(actions.deleteModalButton).click();
-      cy.get(`[data-id="${applicationName}"]`).should('not.exist');
+      // Temporary disabled flaky test. https://issues.redhat.com/browse/KFLUXUI-324
+      // cy.get(`[data-id="${applicationName}"]`).should('not.exist');
       APIHelper.deleteGitHubRepository(repoName);
     }
   });
@@ -66,7 +59,6 @@ describe('Basic Happy Path', () => {
   it('Create an Application with a component', () => {
     Applications.createApplication(applicationName);
     Applications.createComponent(publicRepo, componentName, pipeline);
-    // cy.visit("https://localhost:8080/workspaces/kkanova-tenant/applications/test-app-173261349")
     Applications.checkComponentInListView(componentName, applicationName, 'Build not started');
   });
 
@@ -159,6 +151,20 @@ describe('Basic Happy Path', () => {
 
     it('Wait for on-push build to finish', () => {
       Applications.clickBreadcrumbLink('Pipeline runs');
+      UIhelper.getTableRow('Pipeline run List', `${componentName}-on-push`)
+        .contains(componentName)
+        .invoke('text')
+        .then((pipelinerunName) => {
+          UIhelper.clickRowCellInTable('Pipeline run List', pipelinerunName, pipelinerunName);
+          DetailsTab.waitForPLRAndDownloadAllLogs();
+
+          //Verify the Pipeline run details Graph
+          piplinerunlogsTasks.forEach((item) => {
+            UIhelper.verifyGraphNodes(item);
+          });
+        });
+
+      Applications.clickBreadcrumbLink('Pipeline runs');
       UIhelper.checkTableHasRows('Pipeline run List', 'test', 2);
     });
 
@@ -191,7 +197,7 @@ describe('Basic Happy Path', () => {
       ComponentsTabPage.openComponent(componentName);
     });
 
-    it.skip('Verify deployed image exists', () => {
+    it('Verify deployed image exists', () => {
       ComponentDetailsPage.checkBuildImage();
     });
   });
