@@ -43,3 +43,23 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           flags: unittests
           fail_ci_if_error: true
+
+      - name: Build E2E Test Image
+        env:
+          QUAY_ORG: ${{ secrets.QUAY_TEST_ORG }}
+          QUAY_TOKEN: ${{ secrets.QUAY_TOKEN_TEST }}
+          TARGET_BRANCH: ${{ github.base_ref }}
+          PR_NUMBER: ${{ github.event.number }}
+          HEAD_SHA: "${{ github.event.pull_request.head.sha }}"
+        run: |
+          # check if tests changed
+          git diff --exit-code --quiet origin/${TARGET_BRANCH} HEAD -- e2e-tests/ || is_changed=$?
+
+          if [[ ($is_changed -eq 1) ]]; then
+            podman login -u="$QUAY_ORG" -p="$QUAY_TOKEN" quay.io
+            TEST_IMAGE="quay.io/${QUAY_ORG}/konflux-ui-tests:latest"
+
+            cd e2e-tests
+            podman build -t ${TEST_IMAGE} -f BaseDockerfile
+            podman push ${TEST_IMAGE}
+          fi
