@@ -11,7 +11,7 @@ yarn install
 yarn start > yarn_start_logfile 2>&1 &
 YARN_PID=$!
 
-set -x
+# set -x
 
 # -------------------------------------
 # ----------- RUN E2E TESTS -----------
@@ -48,9 +48,13 @@ TEST_RUN=0
 
 podman run --network host ${COMMON_SETUP} ${TEST_IMAGE} || TEST_RUN=1
 
+echo $PWD
+cd ..
+
 # kill the background process running the UI
 kill $YARN_PID
 cp yarn_start_logfile $PWD/artifacts
 
 echo "Exiting pr_check.sh with code $TEST_RUN"
+echo $PWD
 exit $TEST_RUN
