@@ -130,7 +130,7 @@ jobs:
       - name: Generate error logs
         if: ${{ !cancelled() }}
         run: |
-          ./konflux-ui/generate-err-logs.sh
+          .generate-err-logs.sh
           cp -r konflux-ui/artifacts logs
 
       - name: Archive logs
