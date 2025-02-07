@@ -52,8 +52,8 @@ COMMON_SETUP="-v $PWD/artifacts:/tmp/artifacts:Z,U \
 TEST_RUN=0
 
 set -e
-podman run --network host ${COMMON_SETUP} ${TEST_IMAGE} || TEST_RUN=1
-echo "Exit status of podman command: " $?
+podman run --network host ${COMMON_SETUP} ${TEST_IMAGE}
+TEST_RUN=$?
 echo "TEST RUN: " $TEST_RUN
 echo $PWD
 
