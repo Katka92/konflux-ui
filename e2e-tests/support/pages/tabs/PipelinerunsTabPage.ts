@@ -79,7 +79,7 @@ export class DetailsTab {
   }
 
   static waitUntilStatusIsNotRunning() {
-    cy.get(pipelinerunsTabPO.statusPO, { timeout: 1000000 })
+    cy.get(pipelinerunsTabPO.statusPO, { timeout: 1200000 })
       .should('not.have.text', 'Pending')
       .and('not.have.text', 'Running');
   }

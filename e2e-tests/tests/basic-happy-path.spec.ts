@@ -1,19 +1,11 @@
-import { FULL_APPLICATION_TITLE, NavItem } from '../support/constants/PageTitle';
+import { NavItem } from '../support/constants/PageTitle';
 import { actions } from '../support/pageObjects/global-po';
 import { ApplicationDetailPage } from '../support/pages/ApplicationDetailPage';
-import {
-  ComponentDetailsPage,
-  ComponentPageTabs,
-  DeploymentsTab,
-} from '../support/pages/ComponentDetailsPage';
+import { ComponentDetailsPage } from '../support/pages/ComponentDetailsPage';
 import { ComponentPage } from '../support/pages/ComponentsPage';
 import { ComponentsTabPage } from '../support/pages/tabs/ComponentsTabPage';
 import { IntegrationTestsTabPage } from '../support/pages/tabs/IntegrationTestsTabPage';
-import {
-  DetailsTab,
-  PipelinerunsTabPage,
-  TaskRunsTab,
-} from '../support/pages/tabs/PipelinerunsTabPage';
+import { DetailsTab, TaskRunsTab } from '../support/pages/tabs/PipelinerunsTabPage';
 import { APIHelper } from '../utils/APIHelper';
 import { Applications } from '../utils/Applications';
 import { Common } from '../utils/Common';

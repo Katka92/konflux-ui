@@ -1,4 +1,6 @@
-# bin/bash
+#!/bin/bash
+
+echo $0
 
 # -------------------------------------------
 # ----------- RUN UI WITH CHANGES -----------
@@ -50,19 +52,16 @@ COMMON_SETUP="-v $PWD/artifacts:/tmp/artifacts:Z,U \
     -e CYPRESS_GH_TOKEN=${CYPRESS_GH_TOKEN}"
     
 TEST_RUN=0
-
-set -e
+echo "GH_TOKEN length: " ${#CYPRESS_GH_TOKEN}
+set +e
 podman run --network host ${COMMON_SETUP} ${TEST_IMAGE} || TEST_RUN=1
-echo "Exit status of podman command: " $?
 echo "TEST RUN: " $TEST_RUN
-echo $PWD
 
 # kill the background process running the UI
 kill $YARN_PID
 cp yarn_start_logfile $PWD/artifacts
 
 echo "Exiting pr_check.sh with code $TEST_RUN"
-echo $PWD
 
 cd ..
 exit $TEST_RUN
