@@ -46,9 +46,11 @@ jobs:
 
   push-test-image:
     runs-on: ubuntu-latest
-    steps:
+    steps:      
+      - name: Checkout 🛎️
+        uses: actions/checkout@v4
+
       - name: Build E2E Test Image
-        if: ${{ !cancelled() }}
         env:
           QUAY_BOT_TOKEN: ${{ secrets.QUAY_BOT_TOKEN }}
           QUAY_BOT_USERNAME: ${{ secrets.QUAY_BOT_USERNAME }}
