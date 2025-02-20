@@ -45,12 +45,11 @@ jobs:
           fail_ci_if_error: true
 
       - name: Build E2E Test Image
+        if: ${{ !cancelled() }}
         env:
           QUAY_ORG: ${{ secrets.QUAY_TEST_ORG }}
           QUAY_TOKEN: ${{ secrets.QUAY_TOKEN_TEST }}
           TARGET_BRANCH: ${{ github.base_ref }}
-          PR_NUMBER: ${{ github.event.number }}
-          HEAD_SHA: "${{ github.event.pull_request.head.sha }}"
         run: |
           # check if tests changed
           git diff --exit-code --quiet origin/${TARGET_BRANCH} HEAD -- e2e-tests/ || is_changed=$?
