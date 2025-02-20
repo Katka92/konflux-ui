@@ -44,15 +44,17 @@ jobs:
           flags: unittests
           fail_ci_if_error: true
 
+  push-test-image:
+    runs-on: ubuntu-latest
+    steps:
       - name: Build E2E Test Image
         if: ${{ !cancelled() }}
         env:
-          QUAY_ORG: ${{ secrets.QUAY_TEST_ORG }}
-          QUAY_TOKEN: ${{ secrets.QUAY_TOKEN_TEST }}
-          TARGET_BRANCH: ${{ github.base_ref }}
+          QUAY_BOT_TOKEN: ${{ secrets.QUAY_BOT_TOKEN }}
+          QUAY_BOT_USERNAME: ${{ secrets.QUAY_BOT_USERNAME }}
         run: |
-          podman login -u="$QUAY_ORG" -p="$QUAY_TOKEN" quay.io
-          TEST_IMAGE="quay.io/${QUAY_ORG}/konflux-ui-tests:latest"
+          podman login -u="$QUAY_BOT_USERNAME" -p="$QUAY_BOT_TOKEN" quay.io
+          TEST_IMAGE="quay.io/konflux_ui_qe/konflux-ui-tests:latest"
 
           cd e2e-tests
           podman build -t ${TEST_IMAGE} -f BaseDockerfile
