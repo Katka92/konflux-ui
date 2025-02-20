@@ -51,14 +51,9 @@ jobs:
           QUAY_TOKEN: ${{ secrets.QUAY_TOKEN_TEST }}
           TARGET_BRANCH: ${{ github.base_ref }}
         run: |
-          # check if tests changed
-          git diff --exit-code --quiet origin/${TARGET_BRANCH} HEAD -- e2e-tests/ || is_changed=$?
+          podman login -u="$QUAY_ORG" -p="$QUAY_TOKEN" quay.io
+          TEST_IMAGE="quay.io/${QUAY_ORG}/konflux-ui-tests:latest"
 
-          if [[ ($is_changed -eq 1) ]]; then
-            podman login -u="$QUAY_ORG" -p="$QUAY_TOKEN" quay.io
-            TEST_IMAGE="quay.io/${QUAY_ORG}/konflux-ui-tests:latest"
-
-            cd e2e-tests
-            podman build -t ${TEST_IMAGE} -f BaseDockerfile
-            podman push ${TEST_IMAGE}
-          fi
+          cd e2e-tests
+          podman build -t ${TEST_IMAGE} -f BaseDockerfile
+          podman push ${TEST_IMAGE}
