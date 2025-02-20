@@ -47,7 +47,6 @@ export const usePipelinererunAction = (pipelineRun: PipelineRunKind) => {
 
   const [component, componentLoaded, componentError] = useComponent(
     namespace,
-    workspace,
     pipelineRun?.metadata?.labels?.[PipelineRunLabel.COMPONENT],
   );
 
@@ -57,7 +56,7 @@ export const usePipelinererunAction = (pipelineRun: PipelineRunKind) => {
   const isPushBuildType = [PipelineRunEventType.PUSH, PipelineRunEventType.INCOMING].includes(
     pipelineRun?.metadata?.labels?.[
       PipelineRunLabel.COMMIT_EVENT_TYPE_LABEL
-    ] as PipelineRunEventType,
+    ]?.toLowerCase() as PipelineRunEventType,
   );
 
   const snapshot = React.useMemo(

@@ -51,17 +51,71 @@ const mockRecordsList = {
     },
     {
       data: {
-        // {"key":"test2"}
-        value: 'eyJrZXkiOiJ0ZXN0MiJ9',
+        // {"status":{"conditions":[{"status":"Unknown","type":"Succeeded","reason":"Running"}]}}
+        value:
+          'eyJzdGF0dXMiOnsiY29uZGl0aW9ucyI6W3sic3RhdHVzIjoiVW5rbm93biIsInR5cGUiOiJTdWNjZWVkZWQiLCJyZWFzb24iOiJSdW5uaW5nIn1dfX0=',
+      },
+    },
+    {
+      data: {
+        // I have no seen status shown as Running in tekton records.
+        // We add the test here to ensure when the status is not 'Unknown', we will not filter it out.
+        // {"status":{"conditions":[{"status":"Running","type":"Succeeded","reason":"Running"}]}}
+        value:
+          'eyJzdGF0dXMiOnsiY29uZGl0aW9ucyI6W3sic3RhdHVzIjoiUnVubmluZyIsInR5cGUiOiJTdWNjZWVkZWQiLCJyZWFzb24iOiJSdW5uaW5nIn1dfX0=',
+      },
+    },
+    // The following two records are the regular records we would get in the tekton records.
+    {
+      data: {
+        // {"status":{"conditions":[{"status":"True","type":"Succeeded","reason":"Succeeded"}]}}
+        value:
+          'eyJzdGF0dXMiOnsiY29uZGl0aW9ucyI6W3sic3RhdHVzIjoiVHJ1ZSIsInR5cGUiOiJTdWNjZWVkZWQiLCJyZWFzb24iOiJTdWNjZWVkZWQifV19fQ==',
+      },
+    },
+    {
+      data: {
+        // {"status":{"conditions":[{"status":"False","type":"Succeeded","reason":"Failed"}]}}
+        value:
+          'eyJzdGF0dXMiOnsiY29uZGl0aW9ucyI6W3sic3RhdHVzIjoiRmFsc2UiLCJ0eXBlIjoiU3VjY2VlZGVkIiwicmVhc29uIjoiRmFpbGVkIn1dfX0=',
       },
     },
   ],
 } as RecordsList;
 
-const mockResponseCheck = [[{ key: 'test1' }, { key: 'test2' }], mockRecordsList] as [
-  unknown[],
-  RecordsList,
+const mockResponseList = [
+  { key: 'test1' },
+  {
+    status: {
+      conditions: [{ status: 'Unknown', reason: 'Running', type: 'Succeeded' }],
+    },
+  },
+  {
+    status: {
+      conditions: [{ status: 'Running', reason: 'Running', type: 'Succeeded' }],
+    },
+  },
+  {
+    status: {
+      conditions: [{ status: 'True', reason: 'Succeeded', type: 'Succeeded' }],
+    },
+  },
+  {
+    status: {
+      conditions: [{ status: 'False', reason: 'Failed', type: 'Succeeded' }],
+    },
+  },
 ];
+
+const mockResponseCheck = [mockResponseList, mockRecordsList] as [unknown[], RecordsList];
+
+const mockPipelineRunReponseCheck = [
+  // The pipelinerun should filter the Unknown ones out.
+  mockResponseList.filter(
+    (record) => !record?.status?.conditions?.some((condition) => condition.status === 'Unknown'),
+  ),
+  mockRecordsList,
+] as [unknown[], RecordsList];
 
 const mockLogsRecordsList = {
   nextPageToken: null,
@@ -181,7 +235,21 @@ describe('tekton-results', () => {
           selectorToFilter({
             filterByName: 'resource-name',
           }),
-        ).toStrictEqual('data.metadata.labels["filterByName"] == "resource-name"');
+        ).toStrictEqual('data.metadata.name.startsWith("resource-name")');
+      });
+
+      it('should return creationTimestamp filter', () => {
+        expect(
+          selectorToFilter({
+            filterByCreationTimestampAfter: '2021-01-01T00:00:00Z',
+          }),
+        ).toStrictEqual('data.metadata.creationTimestamp > "2021-01-01T00:00:00Z"');
+
+        expect(
+          selectorToFilter({
+            filterByCreationTimestampAfter: 'not a timestamp',
+          }),
+        ).toStrictEqual('');
       });
 
       it('should return the label filter', () => {
@@ -348,11 +416,18 @@ describe('tekton-results', () => {
 
   describe('createTektonResultsUrl', () => {
     it('should create minimal URL', () => {
-      expect(createTektonResultsUrl('test-ws', 'test-ns', DataType.PipelineRun)).toEqual(
-        '/plugins/tekton-results/workspaces/test-ws/apis/results.tekton.dev/v1alpha2/parents/test-ns/results/-/records?order_by=create_time+desc&page_size=30&filter=data_type+%3D%3D+%22tekton.dev%2Fv1beta1.PipelineRun%22',
+      expect(
+        createTektonResultsUrl('test-ws', 'test-ns', [
+          DataType.PipelineRun,
+          DataType.PipelineRun_v1beta1,
+        ]),
+      ).toEqual(
+        '/plugins/tekton-results/workspaces/test-ws/apis/results.tekton.dev/v1alpha2/parents/test-ns/results/-/records?order_by=create_time+desc&page_size=30&filter=data_type+in+%5B%22tekton.dev%2Fv1.PipelineRun%22%2C%22tekton.dev%2Fv1beta1.PipelineRun%22%5D',
       );
-      expect(createTektonResultsUrl('test-ws', 'test-ns', DataType.TaskRun)).toEqual(
-        '/plugins/tekton-results/workspaces/test-ws/apis/results.tekton.dev/v1alpha2/parents/test-ns/results/-/records?order_by=create_time+desc&page_size=30&filter=data_type+%3D%3D+%22tekton.dev%2Fv1beta1.TaskRun%22',
+      expect(
+        createTektonResultsUrl('test-ws', 'test-ns', [DataType.TaskRun, DataType.TaskRun_v1beta1]),
+      ).toEqual(
+        '/plugins/tekton-results/workspaces/test-ws/apis/results.tekton.dev/v1alpha2/parents/test-ns/results/-/records?order_by=create_time+desc&page_size=30&filter=data_type+in+%5B%22tekton.dev%2Fv1.TaskRun%22%2C%22tekton.dev%2Fv1beta1.TaskRun%22%5D',
       );
     });
 
@@ -361,7 +436,7 @@ describe('tekton-results', () => {
         createTektonResultsUrl(
           'test-ws',
           'test-ns',
-          DataType.PipelineRun,
+          [DataType.PipelineRun, DataType.PipelineRun_v1beta1],
           null,
           null,
           'test-token',
@@ -370,37 +445,65 @@ describe('tekton-results', () => {
     });
 
     it('should create URL with filter', () => {
-      expect(createTektonResultsUrl('test-ws', 'test-ns', DataType.PipelineRun, 'foo=bar')).toEqual(
-        '/plugins/tekton-results/workspaces/test-ws/apis/results.tekton.dev/v1alpha2/parents/test-ns/results/-/records?order_by=create_time+desc&page_size=30&filter=data_type+%3D%3D+%22tekton.dev%2Fv1beta1.PipelineRun%22+%26%26+foo%3Dbar',
+      expect(
+        createTektonResultsUrl(
+          'test-ws',
+          'test-ns',
+          [DataType.PipelineRun, DataType.PipelineRun_v1beta1],
+          'foo=bar',
+        ),
+      ).toEqual(
+        '/plugins/tekton-results/workspaces/test-ws/apis/results.tekton.dev/v1alpha2/parents/test-ns/results/-/records?order_by=create_time+desc&page_size=30&filter=data_type+in+%5B%22tekton.dev%2Fv1.PipelineRun%22%2C%22tekton.dev%2Fv1beta1.PipelineRun%22%5D+%26%26+foo%3Dbar',
       );
     });
 
     it('should create URL with page size', () => {
       // default page size
-      expect(createTektonResultsUrl('test-ws', 'test-ns', DataType.PipelineRun)).toContain(
-        'page_size=30',
-      );
+      expect(
+        createTektonResultsUrl('test-ws', 'test-ns', [
+          DataType.PipelineRun,
+          DataType.PipelineRun_v1beta1,
+        ]),
+      ).toContain('page_size=30');
       // min page size
       expect(
-        createTektonResultsUrl('test-ws', 'test-ns', DataType.PipelineRun, '', {
-          pageSize: 1,
-        }),
+        createTektonResultsUrl(
+          'test-ws',
+          'test-ns',
+          [DataType.PipelineRun, DataType.PipelineRun_v1beta1],
+          '',
+          {
+            pageSize: 1,
+          },
+        ),
       ).toContain('page_size=5');
 
       // min page size
       expect(
-        createTektonResultsUrl('test-ws', 'test-ns', DataType.PipelineRun, '', {
-          pageSize: 11000,
-        }),
+        createTektonResultsUrl(
+          'test-ws',
+          'test-ns',
+          [DataType.PipelineRun, DataType.PipelineRun_v1beta1],
+          '',
+          {
+            pageSize: 11000,
+          },
+        ),
       ).toContain('page_size=10000');
     });
 
     it('should create URL using limit to affect page size', () => {
       expect(
-        createTektonResultsUrl('test-ws', 'test-ns', DataType.PipelineRun, '', {
-          pageSize: 10,
-          limit: 5,
-        }),
+        createTektonResultsUrl(
+          'test-ws',
+          'test-ns',
+          [DataType.PipelineRun, DataType.PipelineRun_v1beta1],
+          '',
+          {
+            pageSize: 10,
+            limit: 5,
+          },
+        ),
       ).toContain('page_size=5');
     });
 
@@ -409,12 +512,12 @@ describe('tekton-results', () => {
         createTektonResultsUrl(
           'test-ws',
           'test-ns',
-          DataType.PipelineRun,
+          [DataType.PipelineRun, DataType.PipelineRun_v1beta1],
           'foo=bar',
           sampleOptions,
         ),
       ).toContain(
-        'filter=data_type+%3D%3D+%22tekton.dev%2Fv1beta1.PipelineRun%22+%26%26+foo%3Dbar+%26%26+data.metadata.labels%5B%22test%22%5D+%3D%3D+%22a%22+%26%26+data.metadata.labels%5B%22mtest%22%5D+%3D%3D+%22ma%22+%26%26+count+%3E+1',
+        '/plugins/tekton-results/workspaces/test-ws/apis/results.tekton.dev/v1alpha2/parents/test-ns/results/-/records?order_by=create_time+desc&page_size=30&filter=data_type+in+%5B%22tekton.dev%2Fv1.PipelineRun%22%2C%22tekton.dev%2Fv1beta1.PipelineRun%22%5D+%26%26+foo%3Dbar+%26%26+data.metadata.labels%5B%22test%22%5D+%3D%3D+%22a%22+%26%26+data.metadata.labels%5B%22mtest%22%5D+%3D%3D+%22ma%22+%26%26+count+%3E+1',
       );
     });
   });
@@ -423,8 +526,14 @@ describe('tekton-results', () => {
     it('should return cached value', async () => {
       commonFetchJSONMock.mockReturnValue(mockEmptyRecordsList);
 
-      await getFilteredRecord('test-ws', 'test-ns', DataType.PipelineRun);
-      await getFilteredRecord('test-ws', 'test-ns', DataType.PipelineRun);
+      await getFilteredRecord('test-ws', 'test-ns', [
+        DataType.PipelineRun,
+        DataType.PipelineRun_v1beta1,
+      ]);
+      await getFilteredRecord('test-ws', 'test-ns', [
+        DataType.PipelineRun,
+        DataType.PipelineRun_v1beta1,
+      ]);
       expect(commonFetchJSONMock).toHaveBeenCalledTimes(2);
 
       commonFetchJSONMock.mockClear();
@@ -432,7 +541,7 @@ describe('tekton-results', () => {
       await getFilteredRecord(
         'test-ws',
         'test-ns',
-        DataType.PipelineRun,
+        [DataType.PipelineRun, DataType.PipelineRun_v1beta1],
         null,
         null,
         null,
@@ -441,7 +550,7 @@ describe('tekton-results', () => {
       await getFilteredRecord(
         'test-ws',
         'test-ns',
-        DataType.PipelineRun,
+        [DataType.PipelineRun, DataType.PipelineRun_v1beta1],
         null,
         null,
         null,
@@ -456,7 +565,10 @@ describe('tekton-results', () => {
           code: 404,
         };
       });
-      const result = await getFilteredRecord('test-ws', 'test-ns', DataType.PipelineRun);
+      const result = await getFilteredRecord('test-ws', 'test-ns', [
+        DataType.PipelineRun,
+        DataType.PipelineRun_v1beta1,
+      ]);
       expect(result).toEqual([[], { nextPageToken: null, records: [] }]);
     });
 
@@ -467,21 +579,33 @@ describe('tekton-results', () => {
         };
       });
       await expect(
-        getFilteredRecord('test-ws', 'test-ns', DataType.PipelineRun),
+        getFilteredRecord('test-ws', 'test-ns', [
+          DataType.PipelineRun,
+          DataType.PipelineRun_v1beta1,
+        ]),
       ).rejects.toBeTruthy();
     });
 
     it('should return record list and decoded value', async () => {
       commonFetchJSONMock.mockReturnValue(mockRecordsList);
-      expect(await getFilteredRecord('test-ws', 'test-ns', DataType.PipelineRun)).toEqual(
-        mockResponseCheck,
-      );
+      expect(
+        await getFilteredRecord('test-ws', 'test-ns', [
+          DataType.PipelineRun,
+          DataType.PipelineRun_v1beta1,
+        ]),
+      ).toEqual(mockResponseCheck);
     });
 
     it('should return record list and decoded value', async () => {
       commonFetchJSONMock.mockReturnValue(mockRecordsList);
       expect(
-        await getFilteredRecord('test-ws', 'test-ns', DataType.PipelineRun, null, { limit: 1 }),
+        await getFilteredRecord(
+          'test-ws',
+          'test-ns',
+          [DataType.PipelineRun, DataType.PipelineRun_v1beta1],
+          null,
+          { limit: 1 },
+        ),
       ).toEqual([
         [mockResponseCheck[0][0]],
         {
@@ -495,13 +619,13 @@ describe('tekton-results', () => {
   describe('getPipelineRuns', () => {
     it('should return record list and decoded value', async () => {
       commonFetchJSONMock.mockReturnValue(mockRecordsList);
-      expect(await getPipelineRuns('test-ws', 'test-ns')).toEqual(mockResponseCheck);
+      expect(await getPipelineRuns('test-ws', 'test-ns')).toEqual(mockPipelineRunReponseCheck);
     });
 
     it('should query tekton results with options', async () => {
       await getPipelineRuns('test-ws', 'test-ns', sampleOptions, 'test-token');
       expect(commonFetchJSONMock).toHaveBeenCalledWith(
-        '/plugins/tekton-results/workspaces/test-ws/apis/results.tekton.dev/v1alpha2/parents/test-ns/results/-/records?order_by=create_time+desc&page_size=30&page_token=test-token&filter=data_type+%3D%3D+%22tekton.dev%2Fv1beta1.PipelineRun%22+%26%26+data.metadata.labels%5B%22test%22%5D+%3D%3D+%22a%22+%26%26+data.metadata.labels%5B%22mtest%22%5D+%3D%3D+%22ma%22+%26%26+count+%3E+1',
+        '/plugins/tekton-results/workspaces/test-ws/apis/results.tekton.dev/v1alpha2/parents/test-ns/results/-/records?order_by=create_time+desc&page_size=30&page_token=test-token&filter=data_type+in+%5B%22tekton.dev%2Fv1.PipelineRun%22%2C%22tekton.dev%2Fv1beta1.PipelineRun%22%5D+%26%26+data.metadata.labels%5B%22test%22%5D+%3D%3D+%22a%22+%26%26+data.metadata.labels%5B%22mtest%22%5D+%3D%3D+%22ma%22+%26%26+count+%3E+1',
       );
     });
   });
@@ -515,7 +639,7 @@ describe('tekton-results', () => {
     it('should query tekton results with options', async () => {
       await getTaskRuns('test-ws', 'test-ns', sampleOptions, 'test-token');
       expect(commonFetchJSONMock).toHaveBeenCalledWith(
-        '/plugins/tekton-results/workspaces/test-ws/apis/results.tekton.dev/v1alpha2/parents/test-ns/results/-/records?order_by=create_time+desc&page_size=30&page_token=test-token&filter=data_type+%3D%3D+%22tekton.dev%2Fv1beta1.TaskRun%22+%26%26+data.metadata.labels%5B%22test%22%5D+%3D%3D+%22a%22+%26%26+data.metadata.labels%5B%22mtest%22%5D+%3D%3D+%22ma%22+%26%26+count+%3E+1',
+        '/plugins/tekton-results/workspaces/test-ws/apis/results.tekton.dev/v1alpha2/parents/test-ns/results/-/records?order_by=create_time+desc&page_size=30&page_token=test-token&filter=data_type+in+%5B%22tekton.dev%2Fv1.TaskRun%22%2C%22tekton.dev%2Fv1beta1.TaskRun%22%5D+%26%26+data.metadata.labels%5B%22test%22%5D+%3D%3D+%22a%22+%26%26+data.metadata.labels%5B%22mtest%22%5D+%3D%3D+%22ma%22+%26%26+count+%3E+1',
       );
     });
   });
@@ -524,22 +648,19 @@ describe('tekton-results', () => {
     it('should return the latest component build task run', async () => {
       commonFetchJSONMock.mockReturnValueOnce(mockLogsRecordsList);
       commonFetchTextMock.mockReturnValueOnce(Promise.resolve(mockLogResponse));
-      expect(await getTaskRunLog('test-ws', 'test-ns', 'sample-task-run')).toEqual('sample log');
-      expect(commonFetchJSONMock.mock.calls).toEqual([
-        [
-          '/plugins/tekton-results/workspaces/test-ws/apis/results.tekton.dev/v1alpha2/parents/test-ns/results/-/records?order_by=create_time+desc&page_size=5&filter=data_type+%3D%3D+%22results.tekton.dev%2Fv1alpha2.Log%22+%26%26+data.spec.resource.kind+%3D%3D+%22TaskRun%22+%26%26+data.spec.resource.name+%3D%3D+%22sample-task-run%22',
-        ],
-      ]);
+      expect(await getTaskRunLog('test-ws', 'test-ns', 'test-id', 'pipelinerun-uid')).toEqual(
+        'sample log',
+      );
       expect(commonFetchTextMock.mock.calls).toEqual([
         [
-          '/plugins/tekton-results/workspaces/test-ws/apis/results.tekton.dev/v1alpha2/parents/test-ns/results/b9f43742-3675-4a71-8d73-31c5f5080a74/logs/113298cc-07f9-3ce0-85e3-5cf635eacf62',
+          '/plugins/tekton-results/workspaces/test-ws/apis/results.tekton.dev/v1alpha2/parents/test-ns/results/pipelinerun-uid/logs/test-id',
         ],
       ]);
     });
 
     it('should throw error 404 if record not found', async () => {
-      commonFetchJSONMock.mockReturnValue(mockEmptyRecordsList);
-      await expect(getTaskRunLog('test-ws', 'test-ns', 'sample-task-run')).rejects.toEqual({
+      commonFetchTextMock.mockClear().mockRejectedValue(mockEmptyRecordsList);
+      await expect(getTaskRunLog('test-ws', 'test-ns', 'sample-task-run', 'test')).rejects.toEqual({
         code: 404,
       });
     });

@@ -1,11 +1,10 @@
 import * as React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import {
   Alert,
   AlertActionCloseButton,
   AlertActionLink,
   AlertVariant,
-  Button,
   ButtonVariant,
   EmptyStateBody,
   Flex,
@@ -25,10 +24,13 @@ import { PACState } from '../../../hooks/usePACState';
 import usePACStatesForComponents from '../../../hooks/usePACStatesForComponents';
 import { useSearchParam } from '../../../hooks/useSearchParam';
 import { ComponentModel } from '../../../models';
+import { IMPORT_PATH } from '../../../routes/paths';
+import { RouterParams } from '../../../routes/utils';
 import { Table } from '../../../shared';
 import AppEmptyState from '../../../shared/components/empty-state/AppEmptyState';
 import FilteredEmptyState from '../../../shared/components/empty-state/FilteredEmptyState';
 import ExternalLink from '../../../shared/components/links/ExternalLink';
+import { useNamespace } from '../../../shared/providers/Namespace/useNamespaceInfo';
 import { ComponentKind } from '../../../types';
 import { useURLForComponentPRs } from '../../../utils/component-utils';
 import { useAccessReviewForModel } from '../../../utils/rbac';
@@ -36,7 +38,6 @@ import { ButtonWithAccessTooltip } from '../../ButtonWithAccessTooltip';
 import { createCustomizeAllPipelinesModalLauncher } from '../../CustomizedPipeline/CustomizePipelinesModal';
 import { GettingStartedCard } from '../../GettingStartedCard/GettingStartedCard';
 import { useModalLauncher } from '../../modal/ModalProvider';
-import { useWorkspaceInfo } from '../../Workspace/useWorkspaceInfo';
 import ComponentsListHeader from './ComponentsListHeader';
 import ComponentsListRow from './ComponentsListRow';
 import ComponentsToolbar, { pipelineRunStatusFilterId } from './ComponentsToolbar';
@@ -52,7 +53,8 @@ type ComponentListViewProps = {
 const ComponentListView: React.FC<React.PropsWithChildren<ComponentListViewProps>> = ({
   applicationName,
 }) => {
-  const { namespace, workspace } = useWorkspaceInfo();
+  const namespace = useNamespace();
+  const { workspaceName } = useParams<RouterParams>();
 
   const [nameFilter, setNameFilter] = useSearchParam('name', '');
   const [statusFiltersParam, setStatusFiltersParam] = useSearchParam('status', '');
@@ -60,10 +62,12 @@ const ComponentListView: React.FC<React.PropsWithChildren<ComponentListViewProps
 
   const [components, componentsLoaded, componentsError] = useComponents(
     namespace,
-    workspace,
+    workspaceName,
     applicationName,
+    true,
   );
   const [canCreateComponent] = useAccessReviewForModel(ComponentModel, 'create');
+  const [canPatchComponent] = useAccessReviewForModel(ComponentModel, 'patch');
 
   const showModal = useModalLauncher();
 
@@ -78,23 +82,16 @@ const ComponentListView: React.FC<React.PropsWithChildren<ComponentListViewProps
   const componentPACStates = usePACStatesForComponents(components);
 
   const componentsWithLatestBuild = React.useMemo(() => {
-    if (!componentsLoaded || componentsError || !pipelineRunsLoaded || pipelineRunsError) {
+    if (!componentsLoaded || componentsError) {
       return [];
     }
     return components.map((c) => ({
       ...c,
-      latestBuildPipelineRun: pipelineRuns.find(
+      latestBuildPipelineRun: pipelineRuns?.find(
         (plr) => plr.metadata?.labels?.[PipelineRunLabel.COMPONENT] === c.metadata.name,
       ),
     }));
-  }, [
-    components,
-    componentsError,
-    componentsLoaded,
-    pipelineRuns,
-    pipelineRunsError,
-    pipelineRunsLoaded,
-  ]);
+  }, [components, componentsError, componentsLoaded, pipelineRuns]);
 
   const statusFilters = React.useMemo(
     () => (statusFiltersParam ? statusFiltersParam.split(',') : []),
@@ -136,7 +133,12 @@ const ComponentListView: React.FC<React.PropsWithChildren<ComponentListViewProps
       <ButtonWithAccessTooltip
         variant="primary"
         component={(props) => (
-          <Link {...props} to={`/workspaces/${workspace}/import?application=${applicationName}`} />
+          <Link
+            {...props}
+            to={`${IMPORT_PATH.createPath({
+              workspaceName: namespace,
+            })}?application=${applicationName}`}
+          />
         )}
         isDisabled={!canCreateComponent}
         tooltip="You don't have access to add a component"
@@ -144,7 +146,7 @@ const ComponentListView: React.FC<React.PropsWithChildren<ComponentListViewProps
           link_name: 'add-component',
           link_location: 'components-list-empty-state',
           app_name: applicationName,
-          workspace,
+          namespace,
         }}
       >
         Add component
@@ -177,20 +179,22 @@ const ComponentListView: React.FC<React.PropsWithChildren<ComponentListViewProps
             complete control over them.
           </FlexItem>
           <FlexItem>
-            <Button
+            <ButtonWithAccessTooltip
               className="pf-u-mr-2xl"
               variant={ButtonVariant.secondary}
+              isDisabled={!canPatchComponent}
+              tooltip="You don't have access to edit the build pipeline plans"
               onClick={() =>
                 showModal(createCustomizeAllPipelinesModalLauncher(applicationName, namespace))
               }
             >
               Edit build pipeline plans
-            </Button>
+            </ButtonWithAccessTooltip>
           </FlexItem>
         </Flex>
       </GettingStartedCard>
     ),
-    [applicationName, namespace, showModal],
+    [applicationName, namespace, showModal, canPatchComponent],
   );
 
   return (
@@ -204,6 +208,16 @@ const ComponentListView: React.FC<React.PropsWithChildren<ComponentListViewProps
           that run together form an application.
         </Text>
       </TextContent>
+      {pipelineRunsLoaded && pipelineRunsError ? (
+        <Alert
+          className="pf-v5-u-mt-md"
+          variant={AlertVariant.warning}
+          isInline
+          title="Error while fetching pipeline runs"
+        >
+          {(pipelineRunsError as { message: string })?.message}{' '}
+        </Alert>
+      ) : null}
       {gettingStartedCard}
       {componentsLoaded && pipelineRunsLoaded && pendingCount > 0 && !mergeAlertHidden ? (
         <Alert
@@ -250,8 +264,8 @@ const ComponentListView: React.FC<React.PropsWithChildren<ComponentListViewProps
           aria-label="Components List"
           Header={ComponentsListHeader}
           Row={ComponentsListRow}
-          loaded={componentsLoaded && pipelineRunsLoaded}
-          customData={{ componentPACStates }}
+          loaded={componentsLoaded}
+          customData={{ pipelineRunsLoaded }}
           getRowProps={(obj: ComponentKind) => ({
             id: `${obj.metadata.name}-component-list-item`,
             'aria-label': obj.metadata.name,

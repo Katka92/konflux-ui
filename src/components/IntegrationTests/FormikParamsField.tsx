@@ -20,8 +20,8 @@ import {
   CardExpandableContent,
   CardBody,
 } from '@patternfly/react-core';
-import { MinusCircleIcon } from '@patternfly/react-icons/dist/js/icons/minus-circle-icon';
-import { PlusCircleIcon } from '@patternfly/react-icons/dist/js/icons/plus-circle-icon';
+import { MinusCircleIcon } from '@patternfly/react-icons/dist/esm/icons/minus-circle-icon';
+import { PlusCircleIcon } from '@patternfly/react-icons/dist/esm/icons/plus-circle-icon';
 import { FieldArray, useField } from 'formik';
 import { InputField } from 'formik-pf';
 import { Param } from '../../types/coreBuildService';
@@ -120,7 +120,7 @@ const FormikParamsField: React.FC<React.PropsWithChildren<IntegrationTestParamsP
                               <DataListItemCells
                                 dataListCells={[
                                   <DataListCell key="param-title" width={5}>
-                                    <TextContent>{`Parameter${i + 1}`}</TextContent>
+                                    <TextContent>{p.name}</TextContent>
                                   </DataListCell>,
 
                                   <DataListCell key="remove-param-button" width={3}>

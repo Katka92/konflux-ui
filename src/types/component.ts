@@ -29,6 +29,8 @@ export enum NudgeStats {
 
 export type ComponentSpecs = {
   componentName: string;
+  gitProviderAnnotation?: string;
+  gitURLAnnotation?: string;
   application: string;
   secret?: string;
   source?: ComponentSource;
@@ -48,6 +50,7 @@ export type ComponentSpecs = {
 export type ComponentKind = K8sResourceCommon & {
   spec: ComponentSpecs;
   status?: {
+    lastPromotedImage?: string;
     containerImage?: string;
     conditions?: ResourceStatusCondition[];
     devfile?: string;

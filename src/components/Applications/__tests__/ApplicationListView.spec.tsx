@@ -1,10 +1,11 @@
-import { screen } from '@testing-library/react';
+import React from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { Table as PfTable, TableHeader } from '@patternfly/react-table/deprecated';
+import { screen, fireEvent, waitFor } from '@testing-library/react';
 import { ApplicationKind } from '../../../types';
-import {
-  createK8sWatchResourceMock,
-  createUseWorkspaceInfoMock,
-  renderWithQueryClient,
-} from '../../../utils/test-utils';
+import { mockUseNamespaceHook } from '../../../unit-test-utils/mock-namespace';
+import { createK8sWatchResourceMock, renderWithQueryClient } from '../../../utils/test-utils';
+import ApplicationListRow from '../ApplicationListRow';
 import ApplicationListView from '../ApplicationListView';
 
 jest.mock('react-i18next', () => ({
@@ -16,6 +17,7 @@ jest.mock('react-router-dom', () => {
   return {
     ...actual,
     useLocation: jest.fn(() => ({})),
+    useSearchParams: jest.fn(),
     Link: (props) => <a href={props.to}>{props.children}</a>,
     useNavigate: jest.fn(),
   };
@@ -24,6 +26,30 @@ jest.mock('react-router-dom', () => {
 jest.mock('../../../utils/rbac', () => ({
   useAccessReviewForModel: jest.fn(() => [true, true]),
 }));
+
+jest.mock('../../../shared/components/table', () => {
+  const actual = jest.requireActual('../../../shared/components/table');
+  return {
+    ...actual,
+    Table: (props) => {
+      const { data, filters, selected, match, kindObj } = props;
+      const cProps = { data, filters, selected, match, kindObj };
+      const columns = props.Header(cProps);
+      return (
+        <PfTable role="table" aria-label="table" cells={columns} variant="compact" borders={false}>
+          <TableHeader role="rowgroup" />
+          <tbody>
+            {props.data.map((d, i) => (
+              <tr key={i}>
+                <ApplicationListRow columns={null} obj={d} />
+              </tr>
+            ))}
+          </tbody>
+        </PfTable>
+      );
+    },
+  };
+});
 
 const applications: ApplicationKind[] = [
   {
@@ -88,12 +114,18 @@ const applications: ApplicationKind[] = [
   },
 ];
 
+const useSearchParamsMock = useSearchParams as jest.Mock;
 const watchResourceMock = createK8sWatchResourceMock();
-createUseWorkspaceInfoMock({ namespace: 'test-ns', workspace: 'test-ws' });
 
 const ApplicationList = ApplicationListView;
 
 describe('Application List', () => {
+  mockUseNamespaceHook('test-ns');
+
+  beforeEach(() => {
+    useSearchParamsMock.mockImplementation(() => React.useState(new URLSearchParams()));
+  });
+
   it('should render spinner if application data is not loaded', () => {
     watchResourceMock.mockReturnValue([[], false]);
     renderWithQueryClient(<ApplicationList />);
@@ -106,7 +138,7 @@ describe('Application List', () => {
     screen.getByText('Easily onboard your applications');
     const button = screen.getByText('Create application');
     expect(button).toBeInTheDocument();
-    expect(button.closest('a').href).toBe('http://localhost/workspaces/test-ws/import');
+    expect(button.closest('a').href).toBe('http://localhost/workspaces/test-ns/import');
   });
 
   it('should render empty state with no card', () => {
@@ -129,5 +161,117 @@ describe('Application List', () => {
     watchResourceMock.mockReturnValue([applications, true]);
     renderWithQueryClient(<ApplicationList />);
     expect(screen.queryByTestId('applications-breadcrumb-link')).not.toBeInTheDocument();
+  });
+
+  it('should apply query params to the filter', async () => {
+    watchResourceMock.mockReturnValue([applications, true]);
+    useSearchParamsMock.mockImplementation(() =>
+      React.useState(new URLSearchParams('name=xyz-app')),
+    );
+    renderWithQueryClient(<ApplicationList />);
+    await waitFor(() => {
+      expect(screen.queryByText('mno-app')).not.toBeInTheDocument();
+      expect(screen.queryByText('mno-app1')).not.toBeInTheDocument();
+      expect(screen.queryByText('mno-app2')).not.toBeInTheDocument();
+      expect(screen.queryByText('xyz-app')).toBeInTheDocument();
+    });
+  });
+
+  it('should filter applications by name', async () => {
+    watchResourceMock.mockReturnValue([applications, true]);
+    const { rerender } = renderWithQueryClient(<ApplicationList />);
+    await waitFor(() => {
+      expect(screen.queryByText('mno-app')).toBeInTheDocument();
+      expect(screen.queryByText('mno-app1')).toBeInTheDocument();
+      expect(screen.queryByText('mno-app2')).toBeInTheDocument();
+      expect(screen.queryByText('xyz-app')).toBeInTheDocument();
+    });
+
+    const filter = screen.getByPlaceholderText('Filter by name...');
+    fireEvent.change(filter, { target: { value: 'xyz-app' } });
+    rerender(<ApplicationList />);
+    await waitFor(() => {
+      expect(screen.queryByText('mno-app')).not.toBeInTheDocument();
+      expect(screen.queryByText('mno-app1')).not.toBeInTheDocument();
+      expect(screen.queryByText('mno-app2')).not.toBeInTheDocument();
+      expect(screen.queryByText('xyz-app')).toBeInTheDocument();
+    });
+  });
+
+  it('should use fallback filter value of metadata.name', async () => {
+    const alteredApplications = applications.map((app) => ({
+      ...app,
+      spec: { displayName: undefined },
+    }));
+    watchResourceMock.mockReturnValue([alteredApplications, true]);
+    const { rerender } = renderWithQueryClient(<ApplicationList />);
+    await waitFor(() => {
+      expect(screen.queryByText('mno-app')).toBeInTheDocument();
+      expect(screen.queryByText('mno-app1')).toBeInTheDocument();
+      expect(screen.queryByText('mno-app2')).toBeInTheDocument();
+      expect(screen.queryByText('xyz-app')).toBeInTheDocument();
+    });
+
+    const filter = screen.getByPlaceholderText('Filter by name...');
+    fireEvent.change(filter, { target: { value: 'xyz-app' } });
+    rerender(<ApplicationList />);
+    await waitFor(() => {
+      expect(screen.queryByText('mno-app')).not.toBeInTheDocument();
+      expect(screen.queryByText('mno-app1')).not.toBeInTheDocument();
+      expect(screen.queryByText('mno-app2')).not.toBeInTheDocument();
+      expect(screen.queryByText('xyz-app')).toBeInTheDocument();
+    });
+  });
+
+  it('should filter case insensitive', async () => {
+    watchResourceMock.mockReturnValue([applications, true]);
+    const { rerender } = renderWithQueryClient(<ApplicationList />);
+    await waitFor(() => {
+      expect(screen.queryByText('mno-app')).toBeInTheDocument();
+      expect(screen.queryByText('mno-app1')).toBeInTheDocument();
+      expect(screen.queryByText('mno-app2')).toBeInTheDocument();
+      expect(screen.queryByText('xyz-app')).toBeInTheDocument();
+    });
+
+    const filter = screen.getByPlaceholderText('Filter by name...');
+    fireEvent.change(filter, { target: { value: 'XYZ' } });
+    rerender(<ApplicationList />);
+    await waitFor(() => {
+      expect(screen.queryByText('mno-app')).not.toBeInTheDocument();
+      expect(screen.queryByText('mno-app1')).not.toBeInTheDocument();
+      expect(screen.queryByText('mno-app2')).not.toBeInTheDocument();
+      expect(screen.queryByText('xyz-app')).toBeInTheDocument();
+    });
+  });
+
+  it('should clear the filter when clear button is clicked', async () => {
+    watchResourceMock.mockReturnValue([applications, true]);
+    const { rerender } = renderWithQueryClient(<ApplicationList />);
+    await waitFor(() => {
+      expect(screen.queryByText('mno-app')).toBeInTheDocument();
+      expect(screen.queryByText('mno-app1')).toBeInTheDocument();
+      expect(screen.queryByText('mno-app2')).toBeInTheDocument();
+      expect(screen.queryByText('xyz-app')).toBeInTheDocument();
+    });
+
+    const filter = screen.getByPlaceholderText('Filter by name...');
+    fireEvent.change(filter, { target: { value: 'invalid-app' } });
+    rerender(<ApplicationList />);
+    await waitFor(() => {
+      expect(screen.queryByText('mno-app')).not.toBeInTheDocument();
+      expect(screen.queryByText('mno-app2')).not.toBeInTheDocument();
+      expect(screen.queryByText('mno-app2')).not.toBeInTheDocument();
+      expect(screen.queryByText('xyz-app')).not.toBeInTheDocument();
+      expect(screen.queryByText('No results found')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Clear all filters' }));
+    rerender(<ApplicationList />);
+    await waitFor(() => {
+      expect(screen.queryByText('mno-app')).toBeInTheDocument();
+      expect(screen.queryByText('mno-app1')).toBeInTheDocument();
+      expect(screen.queryByText('mno-app2')).toBeInTheDocument();
+      expect(screen.queryByText('xyz-app')).toBeInTheDocument();
+    });
   });
 });

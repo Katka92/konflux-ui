@@ -176,13 +176,28 @@ export const getK8sResourceURL = (
     ? pick(queryParams, FILTERED_CREATE_QUERY_PARAMS)
     : queryParams;
   if (queryOptions?.queryParams?.labelSelector) {
-    filteredQueryParams.labelSelector = selectorToString(queryOptions.queryParams.labelSelector);
+    filteredQueryParams.labelSelector =
+      typeof queryOptions.queryParams.labelSelector !== 'string'
+        ? selectorToString(queryOptions.queryParams.labelSelector)
+        : queryOptions.queryParams.labelSelector;
   }
 
   if (filteredQueryParams && !isEmpty(filteredQueryParams)) {
     resourcePath += `?${getQueryString(filteredQueryParams)}`;
   }
   return resourcePath;
+};
+
+/**
+ * returns websocket subprotocol, host with added prefix to path
+ * @param path {String}
+ */
+export const getWebsocketSubProtocolAndPathPrefix = (path: string) => {
+  return {
+    path: path === '' ? undefined : `/wss/k8s${path.startsWith('/') ? path : `/${path}`}`,
+    host: 'auto',
+    subProtocols: ['base64.binary.k8s.io'],
+  };
 };
 
 export const k8sWatch = (
@@ -215,7 +230,8 @@ export const k8sWatch = (
 
   const { labelSelector } = query;
   if (labelSelector) {
-    queryParams.labelSelector = { ...labelSelector };
+    queryParams.labelSelector =
+      typeof labelSelector === 'string' ? labelSelector : { ...labelSelector };
   }
 
   if (query.fieldSelector) {
@@ -235,10 +251,11 @@ export const k8sWatch = (
   }
 
   const path = getK8sResourceURL(kind, undefined, opts);
-  wsOptionsUpdated.path = `/wss/k8s${path}`;
-  wsOptionsUpdated.host = 'auto';
 
-  return new WebSocketFactory(path, wsOptionsUpdated);
+  return new WebSocketFactory(path, {
+    ...wsOptionsUpdated,
+    ...getWebsocketSubProtocolAndPathPrefix(path),
+  });
 };
 
 /**

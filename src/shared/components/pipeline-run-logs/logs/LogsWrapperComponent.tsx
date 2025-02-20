@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Button, Flex, FlexItem } from '@patternfly/react-core';
-import { CompressIcon, DownloadIcon, ExpandIcon } from '@patternfly/react-icons/dist/js/icons';
+import { CompressIcon, DownloadIcon, ExpandIcon } from '@patternfly/react-icons/dist/esm/icons';
 import classNames from 'classnames';
 import { saveAs } from 'file-saver';
 import { useK8sWatchResource } from '../../../../k8s';
@@ -32,7 +32,7 @@ const LogsWrapperComponent: React.FC<React.PropsWithChildren<LogsWrapperComponen
     data: obj,
     isLoading,
     error,
-  } = useK8sWatchResource<PodKind>(resource, PodModel, { retry: false });
+  } = useK8sWatchResource<PodKind>({ ...resource, watch: true }, PodModel, { retry: false });
   const [isFullscreen, fullscreenRef, fullscreenToggle] = useFullscreen<HTMLDivElement>();
   const [downloadAllStatus, setDownloadAllStatus] = React.useState(false);
   const currentLogGetterRef = React.useRef<() => string>();

@@ -1,6 +1,5 @@
 import { isEqual, isNumber } from 'lodash-es';
 import { v4 as uuidv4 } from 'uuid';
-import { getRandomSvgNumber, THUMBNAIL_ANNOTATION } from '../components/ApplicationThumbnail';
 import {
   getAnnotationForSecret,
   getLabelsForSecret,
@@ -8,7 +7,6 @@ import {
   typeToLabel,
 } from '../components/Secrets/utils/secret-utils';
 import { linkSecretToServiceAccount } from '../components/Secrets/utils/service-account-utils';
-import { commonFetch } from '../k8s/fetch';
 import { k8sCreateResource, K8sListResourceItems } from '../k8s/k8s-fetch';
 import { K8sQueryCreateResource, K8sQueryUpdateResource } from '../k8s/query/fetch';
 import {
@@ -33,7 +31,12 @@ import {
   ImageRepositoryVisibility,
 } from '../types';
 import { ComponentSpecs } from './../types/component';
-import { BUILD_REQUEST_ANNOTATION, BuildRequest } from './component-utils';
+import {
+  BuildRequest,
+  BUILD_REQUEST_ANNOTATION,
+  GIT_PROVIDER_ANNOTATION,
+  GITLAB_PROVIDER_URL_ANNOTATION,
+} from './component-utils';
 
 export const sanitizeName = (name: string) => name.split(/ |\./).join('-').toLowerCase();
 
@@ -49,7 +52,6 @@ export const sanitizeName = (name: string) => name.split(/ |\./).join('-').toLow
 export const createApplication = (
   application: string,
   namespace: string,
-  workspace: string,
   dryRun?: boolean,
 ): Promise<ApplicationKind> => {
   const requestData = {
@@ -58,9 +60,6 @@ export const createApplication = (
     metadata: {
       name: application,
       namespace,
-      annotations: {
-        [THUMBNAIL_ANNOTATION]: getRandomSvgNumber().toString(),
-      },
     },
     spec: {
       displayName: application,
@@ -72,7 +71,6 @@ export const createApplication = (
     queryOptions: {
       name: application,
       ns: namespace,
-      ws: workspace,
       ...(dryRun && { queryParams: { dryRun: 'All' } }),
     },
     resource: requestData,
@@ -96,7 +94,6 @@ export const createComponent = (
   component: ComponentSpecs,
   application: string,
   namespace: string,
-  workspace: string,
   secret?: string,
   dryRun?: boolean,
   originalComponent?: ComponentKind,
@@ -104,7 +101,17 @@ export const createComponent = (
   enablePac: boolean = true,
   annotations?: { [key: string]: string },
 ) => {
-  const { componentName, containerImage, source, replicas, resources, env, targetPort } = component;
+  const {
+    componentName,
+    gitProviderAnnotation,
+    gitURLAnnotation,
+    containerImage,
+    source,
+    replicas,
+    resources,
+    env,
+    targetPort,
+  } = component;
 
   const name = component.componentName.split(/ |\./).join('-').toLowerCase();
 
@@ -140,8 +147,14 @@ export const createComponent = (
     verb === 'update' ? { ...originalComponent, spec: newComponent.spec } : newComponent;
 
   // merge additional annotations
-  if (annotations) {
-    resource.metadata.annotations = { ...resource.metadata.annotations, ...annotations };
+  if (annotations || gitProviderAnnotation || gitURLAnnotation) {
+    // Add gitlab annotaions in case of gitlab repo
+    const newAnnotations = annotations;
+    if (gitProviderAnnotation || gitURLAnnotation) {
+      newAnnotations[GIT_PROVIDER_ANNOTATION] = gitProviderAnnotation;
+      newAnnotations[GITLAB_PROVIDER_URL_ANNOTATION] = gitURLAnnotation;
+    }
+    resource.metadata.annotations = { ...resource.metadata.annotations, ...newAnnotations };
   }
 
   return verb === 'create'
@@ -150,7 +163,6 @@ export const createComponent = (
         queryOptions: {
           name,
           ns: namespace,
-          ws: workspace,
           ...(dryRun && { queryParams: { dryRun: 'All' } }),
         },
         resource,
@@ -158,7 +170,7 @@ export const createComponent = (
     : K8sQueryUpdateResource<ComponentKind>({
         model: ComponentModel,
         resource,
-        queryOptions: { ws: workspace, ns: namespace },
+        queryOptions: { ns: namespace },
       });
 };
 
@@ -322,16 +334,11 @@ export const createSecretResource = async (
     await linkSecretToServiceAccount(secretResource, namespace, workspace);
   }
 
-  // Todo: K8sCreateResource appends the resource name and errors out.
-  // Fix the below code when this sdk-utils issue is resolved https://issues.redhat.com/browse/RHCLOUD-21655.
-  return await commonFetch(
-    `/workspaces/${workspace}/api/v1/namespaces/${namespace}/secrets${dryRun ? '?dryRun=All' : ''}`,
-    {
-      method: 'POST',
-      body: JSON.stringify(k8sSecretResource),
-      headers: { 'Content-type': 'application/json' },
-    },
-  );
+  return await K8sQueryCreateResource({
+    model: SecretModel,
+    resource: k8sSecretResource,
+    queryOptions: { ns: namespace, ...(dryRun && { queryParams: { dryRun: 'All' } }) },
+  });
 };
 
 export const addSecret = async (
@@ -342,12 +349,7 @@ export const addSecret = async (
   return await createSecretResource(values, workspace, namespace, false);
 };
 
-export const createSecret = async (
-  secret: ImportSecret,
-  workspace: string,
-  namespace: string,
-  dryRun: boolean,
-) => {
+export const createSecret = async (secret: ImportSecret, namespace: string, dryRun: boolean) => {
   const secretResource = {
     apiVersion: SecretModel.apiVersion,
     kind: SecretModel.kind,
@@ -362,43 +364,30 @@ export const createSecret = async (
     }, {}),
   };
 
-  // Todo: K8sCreateResource appends the resource name and errors out.
-  // Fix the below code when this sdk-utils issue is resolved https://issues.redhat.com/browse/RHCLOUD-21655.
-  return await commonFetch(
-    `/workspaces/${workspace}/api/v1/namespaces/${namespace}/secrets${dryRun ? '?dryRun=All' : ''}`,
-    {
-      method: 'POST',
-      body: JSON.stringify(secretResource),
-      headers: { 'Content-type': 'application/json' },
-    },
-  );
+  return await K8sQueryCreateResource({
+    model: SecretModel,
+    resource: secretResource,
+    queryOptions: { ns: namespace, ...(dryRun && { queryParams: { dryRun: 'All' } }) },
+  });
 };
 
 type CreateImageRepositoryType = {
   application: string;
   component: string;
   namespace: string;
-  workspace: string;
   isPrivate: boolean;
   bombinoUrl: string;
 };
 
 export const createImageRepository = (
-  {
-    application,
-    component,
-    namespace,
-    workspace,
-    isPrivate,
-    bombinoUrl,
-  }: CreateImageRepositoryType,
+  { application, component, namespace, isPrivate, bombinoUrl }: CreateImageRepositoryType,
   dryRun: boolean = false,
 ) => {
   const imageRepositoryResource: ImageRepositoryKind = {
     apiVersion: `${ImageRepositoryModel.apiGroup}/${ImageRepositoryModel.apiVersion}`,
     kind: ImageRepositoryModel.kind,
     metadata: {
-      name: `imagerepository-for-${application}-${component}`,
+      name: component,
       namespace,
       labels: {
         'appstudio.redhat.com/component': component,
@@ -432,7 +421,6 @@ export const createImageRepository = (
     resource: imageRepositoryResource,
     queryOptions: {
       ns: namespace,
-      ws: workspace,
       ...(dryRun && { queryParams: { dryRun: 'All' } }),
     },
   });

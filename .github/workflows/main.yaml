@@ -6,6 +6,8 @@ on:
   pull_request:
     branches:
       - main
+  merge_group:
+    types: [checks_requested]
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
@@ -29,8 +31,12 @@ jobs:
           cache: 'yarn'
   
       - name: Install Dependencies 🥁
-        run: yarn install --frozen-lockfile
-  
+        run: | 
+          yarn install --frozen-lockfile
+          cd e2e-tests
+          yarn install
+          cd ..
+
       - name: Lint ✅
         run: yarn lint
         

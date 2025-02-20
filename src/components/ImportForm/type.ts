@@ -1,10 +1,12 @@
-import { ImportSecret } from '../../types';
+import { SecretFormValues, BuildTimeSecret } from '../../types';
 
 export type ImportFormValues = {
   application: string;
   inAppContext: boolean;
   showComponent: boolean;
   componentName: string;
+  gitProviderAnnotation?: string;
+  gitURLAnnotation?: string;
   isPrivateRepo: boolean;
   source: {
     git: {
@@ -15,6 +17,6 @@ export type ImportFormValues = {
     };
   };
   pipeline: string;
-  importSecrets?: ImportSecret[];
-  newSecrets?: string[];
+  importSecrets?: SecretFormValues[];
+  newSecrets?: BuildTimeSecret[];
 };

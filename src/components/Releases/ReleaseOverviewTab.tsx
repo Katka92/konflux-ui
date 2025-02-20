@@ -1,12 +1,14 @@
 import * as React from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
+  Bullseye,
   DescriptionList,
   DescriptionListDescription,
   DescriptionListGroup,
   DescriptionListTerm,
   Flex,
   FlexItem,
+  Spinner,
   Title,
 } from '@patternfly/react-core';
 import { useReleasePlan } from '../../hooks/useReleasePlans';
@@ -15,16 +17,22 @@ import { useReleaseStatus } from '../../hooks/useReleaseStatus';
 import { useWorkspaceResource } from '../../hooks/useWorkspaceResource';
 import { RouterParams } from '../../routes/utils';
 import { Timestamp } from '../../shared/components/timestamp/Timestamp';
+import { ReleaseKind } from '../../types/release';
 import { calculateDuration } from '../../utils/pipeline-utils';
 import MetadataList from '../MetadataList';
 import { StatusIconWithText } from '../StatusIcon/StatusIcon';
 import { useWorkspaceInfo } from '../Workspace/useWorkspaceInfo';
 
+const getPipelineRunFromRelease = (release: ReleaseKind): string => {
+  // backward compatibility until https://issues.redhat.com/browse/RELEASE-1109 is released.
+  return release.status?.processing?.pipelineRun ?? release.status?.managedProcessing?.pipelineRun;
+};
+
 const ReleaseOverviewTab: React.FC = () => {
   const { releaseName } = useParams<RouterParams>();
   const { namespace, workspace } = useWorkspaceInfo();
   const [release] = useRelease(workspace, namespace, releaseName);
-  const [pipelineRun, prWorkspace] = useWorkspaceResource(release.status?.processing?.pipelineRun);
+  const [pipelineRun, prWorkspace] = useWorkspaceResource(getPipelineRunFromRelease(release));
   const [releasePlan, releasePlanLoaded] = useReleasePlan(
     namespace,
     workspace,
@@ -35,6 +43,14 @@ const ReleaseOverviewTab: React.FC = () => {
     typeof release.status?.completionTime === 'string' ? release.status?.completionTime : '',
   );
   const status = useReleaseStatus(release);
+
+  if (!releasePlanLoaded) {
+    return (
+      <Bullseye>
+        <Spinner size="lg" />
+      </Bullseye>
+    );
+  }
 
   return (
     <>
@@ -116,12 +132,6 @@ const ReleaseOverviewTab: React.FC = () => {
                 <DescriptionListTerm>Release Target</DescriptionListTerm>
                 <DescriptionListDescription>
                   <>{release.status?.target ?? '-'}</>
-                </DescriptionListDescription>
-              </DescriptionListGroup>
-              <DescriptionListGroup>
-                <DescriptionListTerm>Release Strategy</DescriptionListTerm>
-                <DescriptionListDescription>
-                  {release.status?.processing?.releaseStrategy?.split('/')[1] ?? '-'}
                 </DescriptionListDescription>
               </DescriptionListGroup>
               <DescriptionListGroup>

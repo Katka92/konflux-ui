@@ -7,6 +7,10 @@ const navigateMock = jest.fn();
 jest.mock('react-router-dom', () => ({
   Link: (props) => <a href={props.to}>{props.children}</a>,
   useNavigate: () => navigateMock,
+  // Used in ContextsField
+  useParams: jest.fn(() => ({
+    applicationName: 'test-app',
+  })),
 }));
 
 jest.mock('react-i18next', () => ({
@@ -53,5 +57,14 @@ describe('IntegrationTestSection', () => {
     });
 
     screen.queryByTestId('its-param-field');
+  });
+
+  it('should render contexts section', () => {
+    formikRenderer(<IntegrationTestSection isInPage />, {
+      source: 'test-source',
+      secret: null,
+    });
+
+    screen.queryByTestId('its-context-field');
   });
 });

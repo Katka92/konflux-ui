@@ -14,6 +14,14 @@ export const BUILD_REQUEST_ANNOTATION = 'build.appstudio.openshift.io/request';
 
 export const BUILD_STATUS_ANNOTATION = 'build.appstudio.openshift.io/status';
 
+export const GIT_PROVIDER_ANNOTATION = 'git-provider';
+export const GIT_PROVIDER_ANNOTATION_VALUE = {
+  GITHUB: 'github',
+  GITLAB: 'gitlab',
+  OTHERS: 'others',
+};
+export const GITLAB_PROVIDER_URL_ANNOTATION = 'git-provider-url';
+
 export enum ComponentBuildState {
   enabled = 'enabled',
   disabled = 'disabled',
@@ -36,6 +44,19 @@ export type ComponentBuildStatus = {
   };
   message?: string;
 };
+
+/**
+ *
+ * @param component
+ * @returns name of latest container image
+ *
+ * The latest container image fieled is likely changed from time to time.
+ * So it is valueable to track it as utils to avoid bringing multiple changes
+ * accross several files for furture possible changes.
+ *
+ */
+export const getLastestImage = (component: ComponentKind) =>
+  component.status?.lastPromotedImage || component.spec?.containerImage;
 
 /**
  * If whole pac section is missing, PaC state is considered disabled

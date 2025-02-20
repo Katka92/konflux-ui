@@ -7,6 +7,7 @@ import {
 import {
   IntegrationTestScenarioKind,
   Param,
+  Context,
   ResolverParam,
   ResolverType,
 } from '../../../../types/coreBuildService';
@@ -45,12 +46,19 @@ export const formatParams = (params): Param[] => {
   return newParams.length > 0 ? newParams : null;
 };
 
+export type UnformattedContexts = { name: string; description: string }[];
+export const formatContexts = (contexts: UnformattedContexts = []): Context[] | null => {
+  const newContexts = contexts.map(({ name, description }) => ({ name, description }));
+
+  return newContexts.length ? newContexts : null;
+};
+
 export const editIntegrationTest = (
   integrationTest: IntegrationTestScenarioKind,
   integrationTestValues: IntegrationTestFormValues,
   dryRun?: boolean,
 ): Promise<IntegrationTestScenarioKind> => {
-  const { url, revision, path, optional, environmentName, environmentType, params } =
+  const { url, revision, path, optional, environmentName, environmentType, params, contexts } =
     integrationTestValues;
   const integrationTestResource: IntegrationTestScenarioKind = {
     ...integrationTest,
@@ -79,6 +87,7 @@ export const editIntegrationTest = (
         ],
       },
       params: formatParams(params),
+      contexts: formatContexts(contexts),
     },
   };
 
@@ -109,7 +118,7 @@ export const createIntegrationTest = (
   namespace: string,
   dryRun?: boolean,
 ): Promise<IntegrationTestScenarioKind> => {
-  const { name, url, revision, path, optional, params } = integrationTestValues;
+  const { name, url, revision, path, optional, params, contexts } = integrationTestValues;
   const isEC =
     url === EC_INTEGRATION_TEST_URL &&
     revision === EC_INTEGRATION_TEST_REVISION &&
@@ -134,12 +143,7 @@ export const createIntegrationTest = (
         ],
       },
       params: formatParams(params),
-      contexts: [
-        {
-          description: 'Application testing',
-          name: 'application',
-        },
-      ],
+      contexts: formatContexts(contexts),
     },
   };
 
@@ -198,7 +202,7 @@ export const getURLForParam = (params: ResolverParam[], paramName: string): stri
 
 export const getLabelForParam = (paramName: string): string => {
   if (paramName === ResolverRefParams.URL) {
-    return 'GitHub URL';
+    return 'Git URL';
   }
   if (paramName === ResolverRefParams.PATH) {
     return 'Path in repository';

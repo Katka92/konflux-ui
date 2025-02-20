@@ -2,11 +2,20 @@ import * as React from 'react';
 import * as ReactRouterDom from 'react-router-dom';
 import { Form } from '@patternfly/react-core';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { RenderOptions, render, screen, waitForElementToBeRemoved } from '@testing-library/react';
+import {
+  RenderOptions,
+  render,
+  screen,
+  waitForElementToBeRemoved,
+  fireEvent,
+  act,
+} from '@testing-library/react';
 import { FormikValues, Formik } from 'formik';
 import * as WorkspaceHook from '../components/Workspace/useWorkspaceInfo';
 import * as WorkspaceUtils from '../components/Workspace/workspace-context';
+import * as ApplicationHook from '../hooks/useApplications';
 import * as k8s from '../k8s';
+import * as NamespaceUtils from '../shared/providers/Namespace/namespace-context';
 
 export function createTestQueryClient() {
   return new QueryClient({
@@ -54,7 +63,18 @@ export const namespaceRenderer = (
           ...contextValues,
         }}
       >
-        {children}
+        <NamespaceUtils.NamespaceContext.Provider
+          value={{
+            namespace,
+            lastUsedNamespace: 'test-ws',
+            namespaceResource: undefined,
+            namespaces: [],
+            namespacesLoaded: false,
+            ...contextValues,
+          }}
+        >
+          {children}
+        </NamespaceUtils.NamespaceContext.Provider>
       </WorkspaceUtils.WorkspaceContext.Provider>
     ),
     ...options,
@@ -203,6 +223,9 @@ export const createReactRouterMock = (name): jest.Mock => {
   return mockFn;
 };
 
+/**
+ * @deprecated use [namespace-mock](../unit-test-utils/mock-namespace.ts)
+ */
 export const createUseWorkspaceInfoMock = (
   initialValue: Record<string, string> = {},
 ): jest.Mock => {
@@ -217,6 +240,23 @@ export const createUseWorkspaceInfoMock = (
   return mockFn;
 };
 
+export const createUseApplicationMock = (
+  initialValue: [{ metadata: { name: string } }, boolean] = [{ metadata: { name: '' } }, false],
+): jest.Mock => {
+  const mockFn = jest.fn().mockReturnValue(initialValue);
+
+  jest.spyOn(ApplicationHook, 'useApplication').mockImplementation(mockFn);
+
+  beforeEach(() => {
+    mockFn.mockReturnValue(initialValue);
+  });
+
+  return mockFn;
+};
+
+/**
+ * @deprecated use {@link WithTestNamespaceContext}
+ */
 export const WithTestWorkspaceContext =
   (children, data?: WorkspaceUtils.WorkspaceContextData) => () => (
     <WorkspaceUtils.WorkspaceContext.Provider
@@ -234,5 +274,37 @@ export const WithTestWorkspaceContext =
     </WorkspaceUtils.WorkspaceContext.Provider>
   );
 
+export const WithTestNamespaceContext =
+  (children, data?: NamespaceUtils.NamespaceContextData) => () => (
+    <NamespaceUtils.NamespaceContext.Provider
+      value={{
+        namespace: 'test-ws',
+        lastUsedNamespace: 'test-ws',
+        namespaceResource: undefined,
+        namespaces: [],
+        namespacesLoaded: false,
+        ...data,
+      }}
+    >
+      {children}
+    </NamespaceUtils.NamespaceContext.Provider>
+  );
+
 export const waitForLoadingToFinish = async () =>
   await waitForElementToBeRemoved(() => screen.getByRole('progressbar'));
+
+// Ignore this check for the tests.
+// If not, the test will throw an error.
+/* eslint-disable @typescript-eslint/require-await */
+export const openIntegrationTestContextDropdown = async () => {
+  const toggleButton = screen.getByTestId('context-dropdown-toggle').childNodes[1];
+  expect(toggleButton).toHaveAttribute('aria-expanded', 'false');
+  await act(async () => {
+    fireEvent.click(toggleButton);
+  });
+  expect(toggleButton).toHaveAttribute('aria-expanded', 'true');
+};
+
+export const getIntegrationTestContextOptionButton = (name: string) => {
+  return screen.getByTestId(`context-option-${name}`).childNodes[0];
+};
