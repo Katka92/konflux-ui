@@ -10,8 +10,7 @@ EOL
 
 # regex cheatsheet
 # [^ ].* - take everything before the text but leave spaces
-#  0, - replace just the first occurence
-# 
+#  0, - replace just the first occurrence
 sed -i "s%[^ ].*\/oauth2\/.*%context: (path) => path.includes('/oauth2/') || path.includes('/idp/'),%g" webpack.dev.config.js 
 sed -i '0,/autoRewrite: false,/s//autoRewrite: true,/' webpack.dev.config.js 
 sed -i "s/[^ ].*stone-stg-rh01.*/'localhost:9443',/" webpack.dev.config.js
