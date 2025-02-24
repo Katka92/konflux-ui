@@ -60,4 +60,5 @@ jobs:
 
           cd e2e-tests
           podman build -t ${TEST_IMAGE} -f Containerfile
+          echo "Image ${TEST_IMAGE} successfully built. Pushing the image."
           podman push ${TEST_IMAGE}
