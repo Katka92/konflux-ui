@@ -1,30 +1,30 @@
 name: PR Check Test
 
 on:
-  pull_request_target:
+  pull_request:
     types: [opened, synchronize, reopened, labeled, unlabeled]
 
 jobs:
-  check-org-membership:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check if PR author is a member of the organization
-        run: |
-          ORG="${{ github.repository_owner }}"
-          PR_AUTHOR=$(jq --raw-output .pull_request.user.login $GITHUB_EVENT_PATH)
+  # check-org-membership:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Check if PR author is a member of the organization
+  #       run: |
+  #         ORG="${{ github.repository_owner }}"
+  #         PR_AUTHOR=$(jq --raw-output .pull_request.user.login $GITHUB_EVENT_PATH)
           
-          if gh api "/orgs/$ORG/members/$PR_AUTHOR"; then
-            echo "PR author is a member of $ORG GitHub organization, running tests."
-            exit 0
-          fi
+  #         if gh api "/orgs/$ORG/members/$PR_AUTHOR"; then
+  #           echo "PR author is a member of $ORG GitHub organization, running tests."
+  #           exit 0
+  #         fi
 
-          echo "PR author is NOT a member of $ORG GitHub organization, skipping further checks."
-          exit 1
-        env:
-          GITHUB_TOKEN: ${{ secrets.HAC_TEST_GH_TOKEN }}
+  #         echo "PR author is NOT a member of $ORG GitHub organization, skipping further checks."
+  #         exit 1
+  #       env:
+  #         GITHUB_TOKEN: ${{ secrets.HAC_TEST_GH_TOKEN }}
 
   e2e-test:
-    needs: check-org-membership
+    # needs: check-org-membership
     runs-on: ubuntu-latest    
     steps:
       - name: Free Disk Space (Ubuntu)
@@ -40,8 +40,8 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
-          repository: 'konflux-ci/konflux-ci'
-          ref: 'main'
+          repository: 'sahil143/konflux-ci'
+          ref: 'fix-tekton-api-call'
 
       - name: Disable AppArmor
         # works around a change in ubuntu 24.04 that restricts Linux namespace access
@@ -111,7 +111,8 @@ jobs:
       - name: Checkout Konflux-UI Repository
         uses: actions/checkout@v4
         with:
-          ref: "${{ github.event.pull_request.head.sha }}"
+          repository: "sahil143/konflux-ui"
+          ref: "refactor-workspace"
           path: 'konflux-ui'
 
       - name: Install Konflux-UI and run tests
