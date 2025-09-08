@@ -94,7 +94,7 @@ runs:
     - name: Deploying Konflux
       run: |
         : Deploying Konflux
-        # ./konflux-ci/deploy-konflux.sh
+        ./konflux-ci/deploy-konflux.sh
       shell: bash
 
     - name: List namespaces
