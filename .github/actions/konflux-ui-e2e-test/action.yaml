@@ -19,6 +19,7 @@ runs:
       #   SEALIGHTS_TOKEN: ${{ env.SEALIGHTS_TOKEN }}
       # env vars should be propagated from the workflow, specifying them here will override them to empty
       run: |
+        echo "Envs are not specified here"
         : Run Konflux UI E2E tests
         echo "PR_NUMBER: ${PR_NUMBER}"
         ./pr_check.sh test
