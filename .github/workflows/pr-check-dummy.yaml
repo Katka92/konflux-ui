@@ -1,0 +1,22 @@
+name: PR Check Test Dummy
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+  repository_dispatch:
+    types: [rerun-checks]
+
+jobs:
+  randomly-fail:
+    if: github.event_name == 'pull_request' || (github.event_name == 'issue_comment' && github.event.issue.pull_request && contains(github.event.comment.body, '/rerun'))
+    runs-on: ubuntu-latest
+    steps:
+      - name: Randomly fail
+        run: |
+          if [ $(($RANDOM % 2)) -eq 0 ]; then
+            echo "Randomly failing"
+            exit 1
+          else
+            echo "Randomly passing"
+            exit 0
+          fi
