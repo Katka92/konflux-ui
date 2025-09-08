@@ -1,0 +1,35 @@
+name: PR Check Test Dummy
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+  repository_dispatch:
+    types: [rerun-checks]
+  issue_comment:
+    types: [created]
+
+jobs:
+  rerun:
+    if: github.event.issue.pull_request && contains(github.event.comment.body, '/rerun')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger PR workflow
+        uses: peter-evans/repository-dispatch@v2
+        with:
+          event-type: rerun-checks        
+          client-payload: '{"sha":"${{ github.event.issue.pull_request.head.sha }}"}'
+
+  randomly-fail:
+    if: github.event_name != 'issue_comment'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Randomly fail
+        run: |
+          sleep 30
+          if [ $(($RANDOM % 2)) -eq 0 ]; then
+            echo "Randomly failing"
+            exit 1
+          else
+            echo "Randomly passing"
+            exit 0
+          fi
