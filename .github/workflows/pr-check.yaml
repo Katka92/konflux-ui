@@ -33,7 +33,6 @@ jobs:
         with:
           ref: "${{ github.event.pull_request.head.sha }}"
       - name: Deploy konflux-ci
-        id: pr-check-action
         uses: ./.github/actions/konflux-ui-deploy-test
         env:
           TARGET_BRANCH: ${{ github.base_ref }}
