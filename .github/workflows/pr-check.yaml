@@ -81,7 +81,7 @@ jobs:
         with:
           repository: ${{ github.repository }}
           ref: "${{ github.event.pull_request.head.sha }}"
-
+          
       - name: Deploy konflux-ci
         id: pr-check-action
         uses: ./.github/actions/konflux-ui-deploy-test
