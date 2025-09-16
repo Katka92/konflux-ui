@@ -2,7 +2,7 @@
 
 UI for [Konflux](https://github.com/konflux-ci/konflux-ci)
 
-## Contributing
+## Contributingasdfasdf
 
 We welcome contributions! Please read our [Contributing Guidelines](./CONTRIBUTING.md) to get started.
 If you find a bug or want to request a feature, feel free to open an issue as well.
