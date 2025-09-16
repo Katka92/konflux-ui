@@ -80,7 +80,10 @@ runs:
         JOB_TYPE: ${{ inputs.job-type }}
       run: |
         : Build konflux-ui image
-        ./base/pr_check.sh build
+        set -x
+        pwd
+        ls -la
+        ./pr_check.sh build
       shell: bash
 
     - name: Deploying Konflux
