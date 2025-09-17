@@ -1,0 +1,16 @@
+name: Merge test
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+  merge_group:
+    types: [checks_requested]
+
+jobs:
+  echo-event-name:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Echo event name
+        run: |
+          echo "Event name: ${{ github.event_name }}"
+        shell: bash
