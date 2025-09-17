@@ -88,6 +88,9 @@ runs:
         JOB_TYPE: ${{ inputs.job-type }}
       run: |
         : Build konflux-ui image
+        set -x
+        pwd
+        ls -la
         ./pr_check.sh build
       shell: bash
 
