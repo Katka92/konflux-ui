@@ -1,4 +1,4 @@
-name: PR Check Test
+name: Merge test
 
 on:
   pull_request_target:
@@ -11,5 +11,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Echo event name
-        run: echo "Event name: ${{ github.event_name }}"
+        run: |
+          echo "Event name: ${{ github.event_name }}"
         shell: bash
