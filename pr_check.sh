@@ -13,6 +13,10 @@ build_ui_image() {
     export KONFLUX_UI_IMAGE_REF=${IMAGE_NAME}:${IMAGE_TAG}
     export TARGET_BRANCH=${TARGET_BRANCH##*/}
 
+    if [ -z ${TARGET_BRANCH} ]; then
+        TARGET_BRANCH=${REF_BRANCH}
+    fi
+
     # Update konflux-ui image name and tag in konflux-ci kustomize files
     local ui_kustomize_yaml_path="${script_path}/konflux-ci/konflux-ci/ui/core/kustomization.yaml"
     yq eval --inplace "del(.images[] | select(.name == \"*konflux-ui*\") | .digest)" "${ui_kustomize_yaml_path}"
@@ -38,7 +42,7 @@ build_ui_image() {
         BUILD_NAME="${HEAD_SHA}_$(date +'%y%m%d.%H%M')"
         podman run --network host --userns=keep-id --group-add keep-groups -v "$PWD:/konflux-ui" --workdir /konflux-ui -e NODE_DEBUG=sl \
             $NODEJS_AGENT_IMAGE \
-            /bin/bash -cx "slnodejs config --appName ${COMPONENT} --branch ${TARGET_BRANCH} --build ${BUILD_NAME} --token ${SEALIGHTS_TOKEN}"
+            /bin/bash -cx "slnodejs config --appName ${COMPONENT} --branch ${REF_BRANCH} --build ${BUILD_NAME} --token ${SEALIGHTS_TOKEN}"
     else
         echo "ERROR: invalid job type '${JOB_TYPE}' specified"
     fi
