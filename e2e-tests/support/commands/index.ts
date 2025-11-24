@@ -5,7 +5,6 @@ import './a11y';
 import 'cypress-mochawesome-reporter/register';
 import { Result } from 'axe-core';
 import { initPerfMeasuring } from './perf';
-import { now } from 'cypress/types/lodash';
 
 declare global {
   namespace Cypress {
@@ -31,7 +30,7 @@ Cypress.on('test:after:run', (test, runnable) => {
       // Capture DOM structure
       const domContent = win.document.documentElement.outerHTML;
       // Saving timestamp as unique name itentifier
-      const timestamp = now.toString().replace(/[:.]/g, '-');
+      const timestamp = Date.now().toString().replace(/[:.]/g, '-');
 
       // Construct the filename (replace '/assets/saved-doms' if needed )
       const domFileName = `${runnable.parent.title} -- ${test.title} (failed) -- ${timestamp}.html`;
