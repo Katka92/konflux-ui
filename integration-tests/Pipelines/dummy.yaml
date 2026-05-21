@@ -1,0 +1,16 @@
+---
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: dummy-pipeline
+  namespace: kkanova-tenant
+spec:
+  tasks:
+    - name: dummy-task
+      taskSpec:
+        steps:
+          - name: dummy-step
+            image: alpine
+            script: |
+              #!/usr/bin/env sh
+              echo "Hello, world!"
