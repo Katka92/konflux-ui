@@ -1,0 +1,20 @@
+---
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: dummy-pipeline
+  namespace: kkanova-tenant
+spec:
+  tasks:
+    - name: dummy-task
+      taskRef:
+        name: dummy-task
+      params:
+        - name: message
+          value: "Hello, world!"
+    - name: dummy-task-2
+      taskRef:
+        name: dummy-task-2
+      params:
+        - name: message
+          value: "Hello, world!"
