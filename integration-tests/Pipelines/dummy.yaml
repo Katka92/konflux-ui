@@ -1,5 +1,5 @@
 ---
-apiVersion: tekton.dev/v1beta1
+apiVersion: tekton.dev/v1
 kind: Pipeline
 metadata:
   name: dummy-pipeline
@@ -7,8 +7,10 @@ metadata:
 spec:
   tasks:
     - name: dummy-task
-      steps:
-        - name: dummy-step
-          image: alpine
-          script: |
-            echo "Hello, world!"
+      taskSpec:
+        steps:
+          - name: dummy-step
+            image: alpine
+            script: |
+              #!/usr/bin/env sh
+              echo "Hello, world!"
