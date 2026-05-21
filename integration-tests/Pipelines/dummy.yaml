@@ -7,14 +7,8 @@ metadata:
 spec:
   tasks:
     - name: dummy-task
-      taskRef:
-        name: dummy-task
-      params:
-        - name: message
-          value: "Hello, world!"
-    - name: dummy-task-2
-      taskRef:
-        name: dummy-task-2
-      params:
-        - name: message
-          value: "Hello, world!"
+      steps:
+        - name: dummy-step
+          image: alpine
+          script: |
+            echo "Hello, world!"
