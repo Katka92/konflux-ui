@@ -2727,10 +2727,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@patternfly/patternfly@npm:^5.3.1":
-  version: 5.4.2
-  resolution: "@patternfly/patternfly@npm:5.4.2"
-  checksum: 10/1d1921a97d4883e761eaa1de08fea6cd684ee74e3838936d0fca9fc012ab729f7ba42fe0dcd3211e72e2e446d963a71ac3315a36717378f9e15217459bc3f829
+"@patternfly/patternfly@npm:^6.0.0":
+  version: 6.5.2
+  resolution: "@patternfly/patternfly@npm:6.5.2"
+  checksum: 10/54b03c221597b86f08d29bf6b7433a5b761a972bb0d3cb1e8e3eac1bce06e7f1f7e6730eb40990670e67221954f410c94ea5e41c008481bdc54b82c568542c7b
   languageName: node
   linkType: hard
 
@@ -10875,7 +10875,7 @@ __metadata:
     "@commitlint/cli": "npm:^19.3.0"
     "@commitlint/config-conventional": "npm:^19.2.2"
     "@dotenvx/dotenvx": "npm:^1.7.0"
-    "@patternfly/patternfly": "npm:^5.3.1"
+    "@patternfly/patternfly": "npm:^6.0.0"
     "@patternfly/react-charts": "npm:7.4.5"
     "@patternfly/react-core": "npm:5.3.4"
     "@patternfly/react-icons": "npm:^5.3.2"
