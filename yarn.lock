@@ -2857,6 +2857,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@patternfly/react-tokens@npm:^6.0.0":
+  version: 6.5.1
+  resolution: "@patternfly/react-tokens@npm:6.5.1"
+  checksum: 10/dcd0d56ca48d7f4c4bab0cec167ede28f998fa088de1483652e35377d1d91a27c313745eb27d29bc9c61e50b033a01d635e07c74b13587a5c376fc647bba9a05
+  languageName: node
+  linkType: hard
+
 "@patternfly/react-topology@npm:^5.4.0":
   version: 5.4.1
   resolution: "@patternfly/react-topology@npm:5.4.1"
@@ -10882,7 +10889,7 @@ __metadata:
     "@patternfly/react-log-viewer": "npm:5.3.0"
     "@patternfly/react-styles": "npm:^5.3.1"
     "@patternfly/react-table": "npm:5.3.4"
-    "@patternfly/react-tokens": "npm:^5.3.1"
+    "@patternfly/react-tokens": "npm:^6.0.0"
     "@patternfly/react-topology": "npm:^5.4.0"
     "@patternfly/react-virtualized-extension": "npm:^5.1.0"
     "@pmmmwh/react-refresh-webpack-plugin": "npm:^0.5.15"
