@@ -67,6 +67,8 @@ spec:
               key: channel-id
       script: |
         #!/usr/bin/env bash
+        echo "Skipping the Slack notification for now"
+        exit 0
         set -euo pipefail
 
         echo "=== Preparing Slack notification ==="

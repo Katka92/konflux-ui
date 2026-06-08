@@ -2,8 +2,8 @@
 apiVersion: tekton.dev/v1beta1
 kind: Pipeline
 metadata:
-  name: e2e-periodic-main-pipeline
-  namespace: konflux-ui-tenant
+  name: e2e-main-pipeline
+  # namespace: konflux-ui-tenant
 spec:
   workspaces:
     - name: shared-data
@@ -183,9 +183,9 @@ spec:
         resolver: git
         params:
           - name: url
-            value: https://github.com/konflux-ci/konflux-ui
+            value: https://github.com/Katka92/konflux-ui
           - name: revision
-            value: main
+            value: migration_to_konflux
           - name: pathInRepo
             value: integration-tests/tasks/monitor-webhook-logs.yaml
       params:
@@ -202,9 +202,9 @@ spec:
         resolver: git
         params:
           - name: url
-            value: https://github.com/konflux-ci/konflux-ui
+            value: https://github.com/Katka92/konflux-ui
           - name: revision
-            value: main
+            value: migration_to_konflux
           - name: pathInRepo
             value: integration-tests/tasks/run-periodic-konflux-ui.yaml
       params:
@@ -272,9 +272,9 @@ spec:
           value: $(params.oci-credentials-secret)
     - name: pull-request-status-message
       when:
-        - input: '$(tasks.konflux-ui-pr-metadata.results.pull-request-author)'
-          operator: notin
-          values: ['red-hat-konflux[bot]']
+        - input: "skip"
+          operator: in
+          values: ["never"]
       taskRef:
         resolver: git
         params:
@@ -314,9 +314,9 @@ spec:
         resolver: git
         params:
           - name: url
-            value: https://github.com/konflux-ci/konflux-ui
+            value: https://github.com/Katka92/konflux-ui
           - name: revision
-            value: main
+            value: migration_to_konflux
           - name: pathInRepo
             value: integration-tests/tasks/send-slack-notification.yaml
       params:
