@@ -75,16 +75,16 @@ spec:
       default: 'tests/basic-happy-path.spec.ts'
       type: string
   tasks:
-    - name: konflux-ui-pr-metadata
+    - name: test-metadata
       taskRef:
         resolver: git
         params:
           - name: url
-            value: https://github.com/konflux-ci/konflux-ui
+            value: https://github.com/konflux-ci/tekton-integration-catalog.git
           - name: revision
             value: main
           - name: pathInRepo
-            value: integration-tests/tasks/konflux-ui-pr-metadata.yaml
+            value: tasks/test-metadata/0.4/test-metadata.yaml
       params:
         - name: SNAPSHOT
           value: $(params.SNAPSHOT)
@@ -92,9 +92,9 @@ spec:
           value: $(context.pipelineRun.name)
     - name: provision-kind-cluster
       runAfter:
-        - konflux-ui-pr-metadata
+        - test-metadata
       when:
-        - input: '$(tasks.konflux-ui-pr-metadata.results.pull-request-author)'
+        - input: '$(tasks.test-metadata.results.pull-request-author)'
           operator: notin
           values: ['red-hat-konflux[bot]']
         - input: '$(params.skip-provision)'
@@ -138,7 +138,7 @@ spec:
           value: 'm5.xlarge,m5a.xlarge,m5d.xlarge,m6i.xlarge,m6a.xlarge,m7i.xlarge,t3.xlarge,t3a.xlarge'
     - name: deploy-konflux
       when:
-        - input: '$(tasks.konflux-ui-pr-metadata.results.pull-request-author)'
+        - input: '$(tasks.test-metadata.results.pull-request-author)'
           operator: notin
           values: ['red-hat-konflux[bot]']
         - input: '$(params.skip-deploy)'
@@ -161,11 +161,11 @@ spec:
         - name: component-name
           value: ui
         - name: component-pr-owner
-          value: $(tasks.konflux-ui-pr-metadata.results.pull-request-author)
+          value: $(tasks.test-metadata.results.pull-request-author)
         - name: component-pr-sha
-          value: $(tasks.konflux-ui-pr-metadata.results.git-revision)
+          value: $(tasks.test-metadata.results.git-revision)
         - name: component-pr-source-branch
-          value: $(tasks.konflux-ui-pr-metadata.results.source-repo-branch)
+          value: $(tasks.test-metadata.results.source-repo-branch)
         - name: oci-ref
           value: $(params.oci-container-repo):$(context.pipelineRun.name)
         - name: oci-credentials
@@ -174,7 +174,7 @@ spec:
           value: $(params.build-credentials-secret)
     - name: monitor-webhook-logs
       when:
-        - input: '$(tasks.konflux-ui-pr-metadata.results.pull-request-author)'
+        - input: '$(tasks.test-metadata.results.pull-request-author)'
           operator: notin
           values: ['red-hat-konflux[bot]']
       runAfter:
@@ -193,7 +193,7 @@ spec:
           value: '5m'
     - name: run-e2e-konflux-ui
       when:
-        - input: '$(tasks.konflux-ui-pr-metadata.results.pull-request-author)'
+        - input: '$(tasks.test-metadata.results.pull-request-author)'
           operator: notin
           values: ['red-hat-konflux[bot]']
       runAfter:
@@ -206,16 +206,16 @@ spec:
           - name: revision
             value: migration_to_konflux
           - name: pathInRepo
-            value: integration-tests/tasks/run-periodic-konflux-ui.yaml
+            value: integration-tests/tasks/run-e2e-konflux-ui.yaml
       params:
         - name: test-image
           value: 'quay.io/konflux_ui_qe/konflux-ui-tests:latest'
         - name: test-name
           value: '$(context.pipelineRun.name)'
         - name: git-repo
-          value: '$(tasks.konflux-ui-pr-metadata.results.git-repo)'
+          value: '$(tasks.test-metadata.results.git-repo)'
         - name: git-url
-          value: '$(tasks.konflux-ui-pr-metadata.results.git-url)'
+          value: '$(tasks.test-metadata.results.git-url)'
         - name: cypress-credentials-secret
           value: $(params.cypress-credentials-secret)
         - name: cypress-cloud-secret
@@ -227,11 +227,11 @@ spec:
         - name: oci-storage
           value: '$(params.e2e-artifacts-repo)'
         - name: oci-credentials-secret
-          value: '$(tasks.konflux-ui-pr-metadata.results.git-revision)'
+          value: '$(tasks.test-metadata.results.git-revision)'
         - name: job-spec
-          value: '$(tasks.konflux-ui-pr-metadata.results.job-spec)'
+          value: '$(tasks.test-metadata.results.job-spec)'
         - name: component-image
-          value: '$(tasks.konflux-ui-pr-metadata.results.container-image)'
+          value: '$(tasks.test-metadata.results.container-image)'
         - name: test-environment
           value: 'staging'
         - name: oci-ref
@@ -244,7 +244,7 @@ spec:
   finally:
     - name: deprovision-kind-cluster
       when:
-        - input: '$(tasks.konflux-ui-pr-metadata.results.pull-request-author)'
+        - input: '$(tasks.test-metadata.results.pull-request-author)'
           operator: notin
           values: ['red-hat-konflux[bot]']
         - input: '$(params.skip-deprovision)'
@@ -290,7 +290,7 @@ spec:
         - name: oci-container
           value: '$(params.e2e-artifacts-repo):$(context.pipelineRun.name)'
         - name: job-spec
-          value: '$(tasks.konflux-ui-pr-metadata.results.job-spec)'
+          value: '$(tasks.test-metadata.results.job-spec)'
         - name: pipeline-aggregate-status
           value: '$(tasks.status)'
         - name: junit-report-name
@@ -307,7 +307,7 @@ spec:
           value: $(params.konflux-test-infra-secret)
     - name: send-slack-notification
       when:
-        - input: '$(tasks.konflux-ui-pr-metadata.results.pull-request-author)'
+        - input: '$(tasks.test-metadata.results.pull-request-author)'
           operator: notin
           values: ['red-hat-konflux[bot]']
       taskRef:
