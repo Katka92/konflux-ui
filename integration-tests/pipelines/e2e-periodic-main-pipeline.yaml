@@ -10,11 +10,10 @@ spec:
       description: Workspace for git cloning and image building state
       optional: true
   params:
-    - name: cloud-credential-key
-      description: The key secret from konflux-test-infra-secret where all AWS ROSA configurations are stored.
-      type: string
     - name: SNAPSHOT
       description: 'The JSON string representing the snapshot of the application under test.'
+      # Should there be test image or UI builded image?
+      # TODO: build both "normal" and "instrumented" images during a build phase
       default: '{"components": [{"name":"konflux-ui", "containerImage": "quay.io/konflux_ui_qe/konflux-ui-tests:latest"}]}'
       type: string
     - name: konflux-test-infra-secret
@@ -30,10 +29,6 @@ spec:
     - name: artifact-browser-url
       description: 'URL to the artifact browser deployment. If provided, a link will be added to PR comments.'
       default: ''
-      type: string
-    - name: console-url
-      description: 'Konflux/OpenShift console base URL'
-      default: 'https://console.redhat.com/preview/application-pipeline'
       type: string
     - name: github-credentials-secret
       description: 'Secret name containing GitHub token'
@@ -58,8 +53,9 @@ spec:
     - name: build-credentials-secret
       type: string
       default: build-credentials
+      # do we need both skip-provision and skip-deploy?
     - name: skip-provision
-      description: 'Skip provisioning Kind cluster (use existing cluster for debugging)'
+      description: 'Skip provisioning Kind cluster (use existing cluster instead)'
       default: 'false'
       type: string
     - name: skip-deploy
@@ -330,5 +326,3 @@ spec:
           value: 'basic'
         - name: slack-credentials-secret
           value: $(params.slack-credentials-secret)
-        - name: console-url
-          value: $(params.console-url)
