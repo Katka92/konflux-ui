@@ -18,6 +18,15 @@ spec:
   steps:
     - name: setup-monitoring
       image: registry.k8s.io/kubectl:v1.36.1@sha256:d08f476d04d0e30f426f06bc6ff6c38913aaa4591943046b77e2f74a72d3611c #1.36.1
+      env:
+        - name: TEKTON_PIPELINE_RUN
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.labels['tekton.dev/pipelineRun']
+        - name: TEKTON_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
       script: |
         #!/usr/bin/env bash
         set -euo pipefail
@@ -34,21 +43,20 @@ spec:
         SECRET_NAME="kfg-${PIPELINE_RUN_NAME}"
         echo "Looking for secret: ${SECRET_NAME}"
 
-        # Extract kubeconfig from the secret
-        kubectl get secret ${SECRET_NAME} -n ${NAMESPACE} -o jsonpath='{.data.kubeconfig}' | base64 -d > /tmp/kubeconfig
+        # Extract kubeconfig from the secret (0600 so it is not world-readable)
+        kubectl get secret ${SECRET_NAME} -n ${NAMESPACE} -o jsonpath='{.data.kubeconfig}' \
+          | base64 -d \
+          | install -m 0600 /dev/stdin /tmp/kubeconfig
 
         # Switch to Kind cluster context
         export KUBECONFIG=/tmp/kubeconfig
-
-        echo "=== Starting log monitoring ==="
-        echo "Monitoring duration: $(params.monitoring-duration)"
-        echo "Poll interval: 2 minutes"
-        echo "=========================================="
 
         # Parse monitoring duration
         DURATION=$(params.monitoring-duration)
         DURATION_NUM=${DURATION//[!0-9]/}
         DURATION_UNIT=${DURATION//[0-9]/}
+
+        if [[ -z "${DURATION_NUM}" ]]; then TOTAL_SECONDS=600; fi
 
         case ${DURATION_UNIT} in
           m|M)
@@ -73,6 +81,11 @@ spec:
         POLL_INTERVAL=120
         ELAPSED=0
         ITERATION=1
+
+        echo "=== Starting log monitoring ==="
+        echo "Monitoring duration: $(params.monitoring-duration)"
+        echo "Poll interval: 2 minutes"
+        echo "=========================================="
 
         while [ ${ELAPSED} -lt ${TOTAL_SECONDS} ]; do
           echo "=========================================="
@@ -123,12 +136,4 @@ spec:
         echo "=========================================="
         echo "✓ Monitoring complete after ${ITERATION} polls"
         echo "=========================================="
-      env:
-        - name: TEKTON_PIPELINE_RUN
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.labels['tekton.dev/pipelineRun']
-        - name: TEKTON_NAMESPACE
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.namespace
+
