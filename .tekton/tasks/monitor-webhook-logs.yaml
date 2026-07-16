@@ -136,4 +136,3 @@ spec:
         echo "=========================================="
         echo "✓ Monitoring complete after ${ITERATION} polls"
         echo "=========================================="
-

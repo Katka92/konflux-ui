@@ -3,7 +3,7 @@ apiVersion: tekton.dev/v1
 kind: Pipeline
 metadata:
   name: e2e-main-pipeline
-  namespace: konflux-ui-tenant
+  # namespace: konflux-ui-tenant
 spec:
   workspaces:
     - name: shared-data
@@ -187,9 +187,11 @@ spec:
         resolver: git
         params:
           - name: url
-            value: https://github.com/konflux-ci/konflux-ui
+            # value: https://github.com/konflux-ci/konflux-ui
+            value: https://github.com/Katka92/konflux-ui
           - name: revision
-            value: main
+            # value: main
+            value: KFLUXUI-1041-migration
           - name: pathInRepo
             value: .tekton/tasks/monitor-webhook-logs.yaml
       params:
@@ -203,13 +205,14 @@ spec:
         resolver: git
         params:
           - name: url
-            value: https://github.com/konflux-ci/konflux-ui
+            # value: https://github.com/konflux-ci/konflux-ui
+            value: https://github.com/Katka92/konflux-ui
           - name: revision
-            value: main
+            # value: main
+            value: KFLUXUI-1041-migration
           - name: pathInRepo
             value: .tekton/tasks/run-e2e-konflux-ui.yaml
       params:
-          # says if it is PR check or periodic job
         - name: job-type
           value: '$(params.job-type)'
           # oci for storing artefacts
@@ -301,9 +304,11 @@ spec:
         resolver: git
         params:
           - name: url
-            value: https://github.com/konflux-ci/konflux-ui
+            # value: https://github.com/konflux-ci/konflux-ui
+            value: https://github.com/Katka92/konflux-ui
           - name: revision
-            value: main
+            # value: main
+            value: KFLUXUI-1041-migration
           - name: pathInRepo
             value: .tekton/tasks/send-slack-notification.yaml
       params:
