@@ -13194,12 +13194,12 @@ __metadata:
   linkType: hard
 
 "react-hotkeys-hook@npm:^5.2.4":
-  version: 5.2.4
-  resolution: "react-hotkeys-hook@npm:5.2.4"
+  version: 5.4.0
+  resolution: "react-hotkeys-hook@npm:5.4.0"
   peerDependencies:
     react: ">=16.8.0"
     react-dom: ">=16.8.0"
-  checksum: 10/118ffdc15e8932e0c67d2f0479d088ba50d759b4f5974e2394bc720286918530291bbde317b39cbde7ee1239813038ae7b90f6eb24794783036944b3fa2a1ba2
+  checksum: 10/71a140a805843bd6f289ccdda85eb708df62e55fd38453f0d559f36fb4778fb9f83e3eea528498d5955b258ab25f398fdec4620947dabb6d4a78c05542dfd13c
   languageName: node
   linkType: hard
 
